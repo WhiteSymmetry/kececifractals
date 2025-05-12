@@ -1,0 +1,42 @@
+{% set version = "0.1.0" %}
+
+package:
+  name: kececifractals
+  version: {{ version }}
+
+source:
+  path: C:/Users/m/Documents/ipynb/kececifractals/
+
+build:
+  noarch: python  # Platformdan bağımsız bir paket oluşturur
+  script: "{{ PYTHON }} -m pip install . --no-deps --ignore-installed"
+  number: 0
+  entry_points:
+    - kececifractals = kececifractals.__main__:main
+
+requirements:
+  host:
+    - python {{ python }}
+    - numpy
+    # Other build tools
+  run:
+    - python >=3.9,<3.14
+    - numpy
+    # Other runtime dependencies
+  build:
+    - python >=3.9,<3.14
+    - pip
+
+test:
+  imports:
+    - kececifractals
+
+about:
+  home: https://github.com/WhiteSymmetry/kececifractals
+  license: MIT
+  summary: 'Keçeci Fractals: Keçeci-style circle fractal.'
+  description: |
+    Keçeci Fractals: Keçeci-style circle fractal.
+  dev_url: https://github.com/WhiteSymmetry/kececifractals
+  doc_url: https://github.com/WhiteSymmetry/kececifractals
+  doc_source_url: https://github.com/WhiteSymmetry/kececifractals/blob/main/README.md

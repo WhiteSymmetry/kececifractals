@@ -7,7 +7,7 @@ Keçeci Circle Fractal: Keçeci-style circle fractal.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15392519.svg)](https://doi.org/10.5281/zenodo.15392519)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo..svg)](https://doi.org/10.5281/zenodo.)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15392773.svg)](https://doi.org/10.5281/zenodo.15392773)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo..svg)](https://doi.org/10.5281/zenodo.)
 
 [![Anaconda-Server Badge](https://anaconda.org/bilgi/kececifractals/badges/version.svg)](https://anaconda.org/bilgi/kececifractals)
@@ -159,7 +159,7 @@ If this library was useful to you in your research, please cite us. Following th
 ### BibTeX
 
 ```bibtex
-@misc{kececi_2025_,
+@misc{kececi_2025_15392519,
   author       = {Keçeci, Mehmet},
   title        = {kececifractals},
   month        = may,
@@ -170,15 +170,17 @@ If this library was useful to you in your research, please cite us. Following th
   url          = {https://doi.org/10.5281/zenodo.15392519},
 }
 
-@misc{kececi_2025_,
+@misc{kececi_2025_15392773,
   author       = {Keçeci, Mehmet},
-  title        = {Keçeci Fractals},
+  title        = {Scalable Complexity: Mathematical Analysis and
+                   Potential for Physical Applications of the Keçeci
+                   Circle Fractal
+                  },
   month        = may,
   year         = 2025,
   publisher    = {Zenodo},
-  version      = {0.1.0},
-  doi          = {10.5281/zenodo.},
-  url          = {https://doi.org/10.5281/zenodo.},
+  doi          = {10.5281/zenodo.15392773},
+  url          = {https://doi.org/10.5281/zenodo.15392773},
 }
 ```
 
@@ -187,7 +189,7 @@ If this library was useful to you in your research, please cite us. Following th
 ```
 Keçeci, M. (2025). kececifractals (0.1.0). PyPI, Anaconda, GitHub, Zenodo. https://doi.org/10.5281/zenodo.15392519
 
-Keçeci, M. (2025). kececifractals (0.1.0). GitHub, PyPI, Anaconda, Zenodo. https://doi.org/10.5281/zenodo.
+Keçeci, M. (2025). kececifractals (0.1.0). GitHub, PyPI, Anaconda, Zenodo. https://doi.org/10.5281/zenodo.15392773
 
 
 ```
@@ -196,6 +198,6 @@ Keçeci, M. (2025). kececifractals (0.1.0). GitHub, PyPI, Anaconda, Zenodo. http
 ```
 Keçeci, Mehmet. "kececifractals". PyPI, Anaconda, GitHub, Zenodo, 01 May 2025. https://doi.org/10.5281/zenodo.15392519
 
-Keçeci, Mehmet. "kececifractals". GitHub, PyPI, Anaconda, Zenodo, 11 May 2025. https://doi.org/10.5281/zenodo.
+Keçeci, Mehmet. "kececifractals". GitHub, PyPI, Anaconda, Zenodo, 11 May 2025. https://doi.org/10.5281/zenodo.15392773
 
 ```

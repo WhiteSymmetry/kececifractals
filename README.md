@@ -6,7 +6,7 @@ Keçeci Circle Fractal: Keçeci-style circle fractal.
 [![PyPI version](https://badge.fury.io/py/kececifractals.svg)](https://badge.fury.io/py/kececifractals)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo..svg)](https://doi.org/10.5281/zenodo.)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15392519.svg)](https://doi.org/10.5281/zenodo.15392519)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo..svg)](https://doi.org/10.5281/zenodo.)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo..svg)](https://doi.org/10.5281/zenodo.)
 
@@ -139,6 +139,10 @@ kf.kececifractals_circle(output_mode='show', text="Keçeci Circle Fractal: Keçe
 
 ![Keçeci Fractals Example](https://github.com/WhiteSymmetry/kececifractals/blob/main/examples/kf-5.png?raw=true)
 
+![Keçeci Fractals Example](https://github.com/WhiteSymmetry/kececifractals/blob/main/examples/kf-6.png?raw=true)
+
+![Keçeci Fractals Example](https://github.com/WhiteSymmetry/kececifractals/blob/main/examples/kf-7.png?raw=true)
+
 ---
 
 
@@ -160,10 +164,10 @@ If this library was useful to you in your research, please cite us. Following th
   title        = {kececifractals},
   month        = may,
   year         = 2025,
-  publisher    = {PyPI, Anaconda, Github, Zenodo},
+  publisher    = {GitHub, PyPI, Anaconda, Zenodo},
   version      = {0.1.0},
-  doi          = {10.5281/zenodo.},
-  url          = {https://doi.org/10.5281/zenodo.},
+  doi          = {10.5281/zenodo.15392519},
+  url          = {https://doi.org/10.5281/zenodo.15392519},
 }
 
 @misc{kececi_2025_,
@@ -181,7 +185,7 @@ If this library was useful to you in your research, please cite us. Following th
 ### APA
 
 ```
-Keçeci, M. (2025). kececifractals (0.1.0). PyPI, Anaconda, GitHub, Zenodo. https://doi.org/10.5281/zenodo.
+Keçeci, M. (2025). kececifractals (0.1.0). PyPI, Anaconda, GitHub, Zenodo. https://doi.org/10.5281/zenodo.15392519
 
 Keçeci, M. (2025). kececifractals (0.1.0). GitHub, PyPI, Anaconda, Zenodo. https://doi.org/10.5281/zenodo.
 
@@ -190,7 +194,7 @@ Keçeci, M. (2025). kececifractals (0.1.0). GitHub, PyPI, Anaconda, Zenodo. http
 
 ### Chicago
 ```
-Keçeci, Mehmet. "kececifractals". PyPI, Anaconda, GitHub, Zenodo, 01 May 2025. https://doi.org/10.5281/zenodo.
+Keçeci, Mehmet. "kececifractals". PyPI, Anaconda, GitHub, Zenodo, 01 May 2025. https://doi.org/10.5281/zenodo.15392519
 
 Keçeci, Mehmet. "kececifractals". GitHub, PyPI, Anaconda, Zenodo, 11 May 2025. https://doi.org/10.5281/zenodo.
 

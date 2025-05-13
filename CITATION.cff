@@ -19,6 +19,8 @@ identifiers:
     value: 10.5281/zenodo.15392519
   - type: doi
     value: 10.5281/zenodo.15392773
+  - type: doi
+    value: 10.5281/zenodo.15396198
 repository-code: 'https://github.com/WhiteSymmetry/kececifractals'
 url: 'https://github.com/WhiteSymmetry/kececifractals'
 repository: 'https://anaconda.org/bilgi/kececifractals'

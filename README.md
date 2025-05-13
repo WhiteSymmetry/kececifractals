@@ -189,7 +189,7 @@ If this library was useful to you in your research, please cite us. Following th
 ```
 Keçeci, M. (2025). kececifractals (0.1.0). PyPI, Anaconda, GitHub, Zenodo. https://doi.org/10.5281/zenodo.15392519
 
-Keçeci, M. (2025). kececifractals (0.1.0). GitHub, PyPI, Anaconda, Zenodo. https://doi.org/10.5281/zenodo.15392773
+Keçeci, M. (2025). Scalable Complexity: Mathematical Analysis and Potential for Physical Applications of the Keçeci Circle Fractal. https://doi.org/10.5281/zenodo.15392773
 
 
 ```
@@ -198,6 +198,6 @@ Keçeci, M. (2025). kececifractals (0.1.0). GitHub, PyPI, Anaconda, Zenodo. http
 ```
 Keçeci, Mehmet. "kececifractals". PyPI, Anaconda, GitHub, Zenodo, 01 May 2025. https://doi.org/10.5281/zenodo.15392519
 
-Keçeci, Mehmet. "kececifractals". GitHub, PyPI, Anaconda, Zenodo, 11 May 2025. https://doi.org/10.5281/zenodo.15392773
+Keçeci, Mehmet. "Scalable Complexity: Mathematical Analysis and Potential for Physical Applications of the Keçeci Circle Fractal", 13 Mayıs 2025. https://doi.org/10.5281/zenodo.15392773.
 
 ```

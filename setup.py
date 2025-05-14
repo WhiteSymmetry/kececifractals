@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="kececifractals",
     version="0.1.0",
-    description="eçeci Fractals: Keçeci-style circle fractal.",
+    description="Keçeci Fractals: Keçeci-style circle fractal.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     author="Mehmet Keçeci",

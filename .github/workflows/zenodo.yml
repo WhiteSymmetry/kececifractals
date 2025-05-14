@@ -27,7 +27,7 @@ jobs:
             {
               "title": "kececifractals",
               "upload_type": "software",
-              "description": "eçeci Fractals: Keçeci-style circle fractal.",
+              "description": "Keçeci Fractals: Keçeci-style circle fractal.",
               "creators": [
                 {"name": "Keçeci, Mehmet", "orcid": "0000-0001-9937-9839"}
               ],

@@ -10,6 +10,8 @@ Keçeci Circle Fractal: Keçeci-style circle fractal.
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15392773.svg)](https://doi.org/10.5281/zenodo.15392773)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15396198.svg)](https://doi.org/10.5281/zenodo.15396198)
 
+[![WorkflowHub DOI](https://img.shields.io/badge/DOI-10.48546%2Fworkflowhub.datafile.16.1-blue)](https://doi.org/10.48546/workflowhub.datafile.16.1)
+
 [![Anaconda-Server Badge](https://anaconda.org/bilgi/kececifractals/badges/version.svg)](https://anaconda.org/bilgi/kececifractals)
 [![Anaconda-Server Badge](https://anaconda.org/bilgi/kececifractals/badges/latest_release_date.svg)](https://anaconda.org/bilgi/kececifractals)
 [![Anaconda-Server Badge](https://anaconda.org/bilgi/kececifractals/badges/platforms.svg)](https://anaconda.org/bilgi/kececifractals)
@@ -187,6 +189,8 @@ If this library was useful to you in your research, please cite us. Following th
 ### APA
 
 ```
+Keçeci, M. (2025). kececifractals [Data set]. WorkflowHub. https://doi.org/10.48546/workflowhub.datafile.16.1
+
 Keçeci, M. (2025). kececifractals. Zenodo. https://doi.org/10.5281/zenodo.15392518
 
 Keçeci, M. (2025). Scalable Complexity: Mathematical Analysis and Potential for Physical Applications of the Keçeci Circle Fractal. https://doi.org/10.5281/zenodo.15396198
@@ -196,6 +200,8 @@ Keçeci, M. (2025). Scalable Complexity: Mathematical Analysis and Potential for
 
 ### Chicago
 ```
+Keçeci, MehmetKeçeci, M. kececifractals [Data set]. WorkflowHub, 2025. https://doi.org/10.48546/workflowhub.datafile.16.1
+
 Keçeci, Mehmet. "kececifractals". Zenodo, 01 May 2025. https://doi.org/10.5281/zenodo.15392518
 
 Keçeci, Mehmet. "Scalable Complexity: Mathematical Analysis and Potential for Physical Applications of the Keçeci Circle Fractal", 13 Mayıs 2025. https://doi.org/10.5281/zenodo.15396198.

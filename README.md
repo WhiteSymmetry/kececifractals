@@ -6,7 +6,7 @@ Keçeci Circle Fractal: Keçeci-style circle fractal.
 [![PyPI version](https://badge.fury.io/py/kececifractals.svg)](https://badge.fury.io/py/kececifractals)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15392519.svg)](https://doi.org/10.5281/zenodo.15392519)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15392518.svg)](https://doi.org/10.5281/zenodo.15392518)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15392773.svg)](https://doi.org/10.5281/zenodo.15392773)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15396198.svg)](https://doi.org/10.5281/zenodo.15396198)
 
@@ -159,15 +159,15 @@ If this library was useful to you in your research, please cite us. Following th
 ### BibTeX
 
 ```bibtex
-@misc{kececi_2025_15392519,
+@misc{kececi_2025_15392518,
   author       = {Keçeci, Mehmet},
   title        = {kececifractals},
   month        = may,
   year         = 2025,
   publisher    = {GitHub, PyPI, Anaconda, Zenodo},
   version      = {0.1.0},
-  doi          = {10.5281/zenodo.15392519},
-  url          = {https://doi.org/10.5281/zenodo.15392519},
+  doi          = {10.5281/zenodo.15392518},
+  url          = {https://doi.org/10.5281/zenodo.15392518},
 }
 
 @misc{kececi_2025_15396198,
@@ -187,7 +187,7 @@ If this library was useful to you in your research, please cite us. Following th
 ### APA
 
 ```
-Keçeci, M. (2025). kececifractals (0.1.0). PyPI, Anaconda, GitHub, Zenodo. https://doi.org/10.5281/zenodo.15392519
+Keçeci, M. (2025). kececifractals. Zenodo. https://doi.org/10.5281/zenodo.15392518
 
 Keçeci, M. (2025). Scalable Complexity: Mathematical Analysis and Potential for Physical Applications of the Keçeci Circle Fractal. https://doi.org/10.5281/zenodo.15396198
 
@@ -196,7 +196,7 @@ Keçeci, M. (2025). Scalable Complexity: Mathematical Analysis and Potential for
 
 ### Chicago
 ```
-Keçeci, Mehmet. "kececifractals". PyPI, Anaconda, GitHub, Zenodo, 01 May 2025. https://doi.org/10.5281/zenodo.15392519
+Keçeci, Mehmet. "kececifractals". Zenodo, 01 May 2025. https://doi.org/10.5281/zenodo.15392518
 
 Keçeci, Mehmet. "Scalable Complexity: Mathematical Analysis and Potential for Physical Applications of the Keçeci Circle Fractal", 13 Mayıs 2025. https://doi.org/10.5281/zenodo.15396198.
 

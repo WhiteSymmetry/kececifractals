@@ -1,4 +1,11 @@
 # kececifractals.py
+"""
+This module provides two primary functionalities for generating Keçeci Fractals:
+1.  kececifractals_circle(): Generates general-purpose, aesthetic, and randomly
+    colored circular fractals.
+2.  visualize_qec_fractal(): Generates fractals customized for modeling the
+    concept of Quantum Error Correction (QEC) codes.
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,267 +13,276 @@ from matplotlib.patches import Circle
 import random
 import math
 import sys
-import os # Import os to potentially handle file paths
+import os
 
-# --- Helper Functions ---
+# --- GENERAL HELPER FUNCTIONS ---
 
 def random_soft_color():
     """Generates a random soft RGB color tuple."""
     return tuple(random.uniform(0.4, 0.95) for _ in range(3))
 
-def draw_circle(ax, center, radius, color):
-    """Adds a circle patch to the Matplotlib axes."""
-    # Using fill=True and linewidth=0 is efficient for solid circles
-    ax.add_patch(Circle(center, radius, color=color, fill=True, linewidth=0))
+def _draw_circle_patch(ax, center, radius, face_color, edge_color='black', lw=0.5):
+    """
+    A robust helper function that adds a circle patch to the Matplotlib axes,
+    using facecolor and edgecolor to avoid the UserWarning.
+    """
+    ax.add_patch(Circle(center, radius, facecolor=face_color, edgecolor=edge_color, linewidth=lw, fill=True))
 
-# --- Recursive Fractal Drawing (Internal Helper) ---
+
+# ==============================================================================
+# PART 1: GENERAL-PURPOSE KEÇECİ FRACTALS
+# ==============================================================================
 
 def _draw_recursive_circles(ax, x, y, radius, level, max_level, num_children, min_radius, scale_factor):
     """
-    Internal helper recursive function to draw child circles. Not intended for direct use.
+    Internal recursive helper function to draw child circles for general fractals.
+    Not intended for direct use.
     """
-    # Base Case: Stop recursion if max level is reached
     if level > max_level:
         return
 
     child_radius = radius * scale_factor
-
-    # Optimization: Stop if child circles will be too small
     if child_radius < min_radius:
         return
 
-    # Calculate the distance from the parent center to the child centers
     distance_from_parent_center = radius - child_radius
 
-    # --- Place and Draw Child Circles ---
     for i in range(num_children):
-        # Calculate the angle for this child
         angle_rad = np.deg2rad(360 / num_children * i)
-
-        # Calculate the center of the child circle
         child_x = x + distance_from_parent_center * np.cos(angle_rad)
         child_y = y + distance_from_parent_center * np.sin(angle_rad)
-
-        # Draw the child circle
+        
         child_color = random_soft_color()
-        draw_circle(ax, (child_x, child_y), child_radius, child_color)
+        # General-purpose fractal uses lw=0 for solid, borderless circles.
+        _draw_circle_patch(ax, (child_x, child_y), child_radius, face_color=child_color, lw=0)
 
-        # Recursive Call for the next level
         try:
             _draw_recursive_circles(ax, child_x, child_y, child_radius, level + 1,
                                     max_level, num_children, min_radius, scale_factor)
         except RecursionError:
-            # Print a warning if recursion depth is exceeded, but continue if possible
-            print(f"Warning: Maximum recursion depth likely reached near level {level+1}. "
-                  f"Fractal generation may be incomplete. "
-                  f"Consider reducing max_level or increasing min_size_factor.", file=sys.stderr)
-            # Stop this branch of recursion if depth limit is hit
+            print(f"Warning: Maximum recursion depth reached. Fractal may be incomplete.", file=sys.stderr)
             return
 
-# --- Main Public Function ---
-
 def kececifractals_circle(
-    initial_children=6,
-    recursive_children=6,
-    text="Keçeci Fractals",
-    font_size=14,
-    font_color='black',
-    font_style='bold',
-    font_family='Arial',
-    max_level=4,
-    min_size_factor=0.001,      # Practical minimum > 0, e.g., 0.001 or lower
-    scale_factor=0.5,           # Adjusted default for potentially better visual separation
-    base_radius=4.0,
-    background_color=None,
-    initial_circle_color=None,
-    output_mode='show',         # 'show', 'png', 'svg', 'jpg'
-    filename="kececi_fractal_circle-1", # Base filename for saving
-    dpi=300                     # Resolution for raster formats (png, jpg)
+    initial_children=6, recursive_children=6, text="Keçeci Fractals",
+    font_size=14, font_color='black', font_style='bold', font_family='Arial',
+    max_level=4, min_size_factor=0.001, scale_factor=0.5,
+    base_radius=4.0, background_color=None, initial_circle_color=None,
+    output_mode='show', filename="kececi_fractal_circle", dpi=300
     ):
     """
-    Generates and displays or saves a Keçeci-style circle fractal.
-
-    Args:
-        initial_children (int): Number of circles in the first level.
-        recursive_children (int): Number of children per circle in recursion.
-        text (str): Text to display circularly around the fractal. Empty string for no text.
-        font_size (int): Font size for the text.
-        font_color (str): Color of the text (matplotlib color format).
-        font_style (str): Font style for the text ('normal', 'bold', etc.).
-        font_family (str): Font family for the text.
-        max_level (int): Maximum recursion depth. Level 0 is the main circle.
-        min_size_factor (float): Stop recursion if radius < base_radius * min_size_factor.
-                         Must be > 0. Practical limit depends on visual needs/resources.
-        scale_factor (float): Ratio of child radius to parent radius (0 < scale_factor < 1).
-        base_radius (float): Radius of the initial, largest circle.
-        background_color (tuple|str|None): Background color. Uses random_soft_color() if None.
-        initial_circle_color (tuple|str|None): Color of the main circle. Uses random_soft_color() if None.
-        output_mode (str): 'show' to display inline (Jupyter) or in a window,
-                           'png', 'svg', 'jpg' to save in that format.
-        filename (str): Base filename for saving (extension is added automatically).
-                        The file is saved in the current working directory.
-        dpi (int): Dots Per Inch resolution for saving PNG and JPG files.
-
-    Returns:
-        None: Displays the plot or saves it to a file.
+    Generates, displays, or saves a general-purpose, aesthetic Keçeci-style circle fractal.
     """
     # Input validation
     if not isinstance(max_level, int) or max_level < 0:
         print("Error: max_level must be a non-negative integer.", file=sys.stderr)
         return
-    if not isinstance(min_size_factor, (int, float)) or min_size_factor <= 0:
-        print("Error: min_size_factor must be a positive number.", file=sys.stderr)
-        return
-    if not isinstance(scale_factor, (int, float)) or not (0 < scale_factor < 1):
+    if not (0 < scale_factor < 1):
          print("Error: scale_factor must be a number between 0 and 1 (exclusive).", file=sys.stderr)
          return
 
-    # Setup plot
-    fig_size = 10 # Maintain a consistent figure size
-    fig, ax = plt.subplots(figsize=(fig_size, fig_size))
-
-    # Colors
+    fig, ax = plt.subplots(figsize=(10, 10))
     bg_color = background_color if background_color else random_soft_color()
     fig.patch.set_facecolor(bg_color)
     main_color = initial_circle_color if initial_circle_color else random_soft_color()
 
-    # Draw main circle (Level 0)
-    draw_circle(ax, (0, 0), base_radius, main_color)
+    # Draw the main circle
+    _draw_circle_patch(ax, (0, 0), base_radius, face_color=main_color, lw=0)
 
-    # Calculate minimum absolute size
     min_absolute_radius = base_radius * min_size_factor
+    limit = base_radius + 1.0
 
-    # --- Text Placement ---
-    limit = base_radius + 1.0 # Default plot limit
+    # Text placement
     if text and isinstance(text, str) and len(text) > 0:
-        outer_bound_radius = base_radius
-        text_radius = outer_bound_radius + 0.8 # Place text slightly outside
+        text_radius = base_radius + 0.8
         for i, char in enumerate(text):
-            angle_deg = (360 / len(text) * i) - 90 # Start from top
+            angle_deg = (360 / len(text) * i) - 90
             angle_rad = np.deg2rad(angle_deg)
-            x_text = text_radius * np.cos(angle_rad)
-            y_text = text_radius * np.sin(angle_rad)
-            rotation = angle_deg + 90 # Rotate character appropriately
+            x_text, y_text = text_radius * np.cos(angle_rad), text_radius * np.sin(angle_rad)
             ax.text(x_text, y_text, char, fontsize=font_size, ha='center', va='center',
-                    color=font_color, fontweight=font_style, fontname=font_family, rotation=rotation)
-        # Adjust plot limits to ensure text is visible
-        limit = max(limit, text_radius + font_size * 0.1) # Add buffer based on font size
+                    color=font_color, fontweight=font_style, fontname=font_family, rotation=angle_deg + 90)
+        limit = max(limit, text_radius + font_size * 0.1)
 
-    # --- Draw First Level (Level 1) Children and Start Recursion ---
+    # Start the recursion
     if max_level >= 1:
         initial_radius = base_radius * scale_factor
-        # Check if the *first* level children are large enough
         if initial_radius >= min_absolute_radius:
-            # Distance from the center of the main circle to the centers of the first-level children
-            dist_initial = base_radius - initial_radius # = base_radius * (1 - scale_factor)
-
+            dist_initial = base_radius - initial_radius
             for i in range(initial_children):
                 angle_rad = np.deg2rad(360 / initial_children * i)
-                # Calculate center of this initial child
-                ix = 0 + dist_initial * np.cos(angle_rad)
-                iy = 0 + dist_initial * np.sin(angle_rad)
+                ix, iy = dist_initial * np.cos(angle_rad), dist_initial * np.sin(angle_rad)
                 i_color = random_soft_color()
+                _draw_circle_patch(ax, (ix, iy), initial_radius, face_color=i_color, lw=0)
+                _draw_recursive_circles(ax, ix, iy, initial_radius, 2, max_level,
+                                        recursive_children, min_absolute_radius, scale_factor)
 
-                # Draw the initial child (Level 1)
-                draw_circle(ax, (ix, iy), initial_radius, i_color)
-
-                # Start recursion for this child, beginning at Level 2
-                _draw_recursive_circles(ax, ix, iy, initial_radius, level=2,
-                                        max_level=max_level,
-                                        num_children=recursive_children,
-                                        min_radius=min_absolute_radius,
-                                        scale_factor=scale_factor)
-
-    # --- Final Plot Adjustments ---
+    # Plot adjustments
     ax.set_xlim(-limit, limit)
     ax.set_ylim(-limit, limit)
-    ax.set_aspect('equal', adjustable='box') # Ensure circles look like circles
-    ax.axis('off') # Hide the axes
-    # Set title only if text is not empty, otherwise use a generic title
+    ax.set_aspect('equal', adjustable='box')
+    ax.axis('off')
     plot_title = f"Keçeci Fractals ({text})" if text else "Keçeci Circle Fractal"
     plt.title(plot_title, fontsize=16)
 
-    # --- Output Handling ---
-    output_mode = output_mode.lower().strip() # Normalize output mode string
-
+    # Output handling
+    output_mode = output_mode.lower().strip()
     if output_mode == 'show':
-        plt.show() # Displays the plot (inline in Jupyter, or new window)
-        # NOTE: No plt.close() here, as show() handles the figure lifecycle.
+        plt.show()
     elif output_mode in ['png', 'jpg', 'svg']:
-        # Construct full filename in the current working directory
         output_filename = f"{filename}.{output_mode}"
         try:
-            save_kwargs = {
-                'bbox_inches': 'tight', # Crop whitespace
-                'pad_inches': 0.1,      # Small padding
-                'facecolor': fig.get_facecolor() # Ensure background color is saved
-            }
+            save_kwargs = {'bbox_inches': 'tight', 'pad_inches': 0.1, 'facecolor': fig.get_facecolor()}
             if output_mode in ['png', 'jpg']:
-                 save_kwargs['dpi'] = dpi # Set resolution for raster images
-
+                 save_kwargs['dpi'] = dpi
             plt.savefig(output_filename, format=output_mode, **save_kwargs)
-            print(f"Fractal successfully saved as '{os.path.abspath(output_filename)}'") # Show full path
+            print(f"Fractal successfully saved to: '{os.path.abspath(output_filename)}'")
         except Exception as e:
-            print(f"Error saving {output_mode.upper()} file '{output_filename}': {e}", file=sys.stderr)
+            print(f"Error: Could not save file '{output_filename}': {e}", file=sys.stderr)
         finally:
-             # IMPORTANT: Close the figure *after* saving or error to free memory
              plt.close(fig)
     else:
         print(f"Error: Invalid output_mode '{output_mode}'. Choose 'show', 'png', 'jpg', or 'svg'.", file=sys.stderr)
-        # Close the figure if the mode was invalid and plotting happened
         plt.close(fig)
 
-# --- Optional: Code to run only when the script is executed directly ---
-# This block is useful for testing the module from the command line
-# It will NOT run when the module is imported
+
+# ==============================================================================
+# PART 2: QUANTUM ERROR CORRECTION (QEC) VISUALIZATION
+# ==============================================================================
+
+def _draw_recursive_qec(ax, x, y, radius, level, max_level, num_children, scale_factor, 
+                        physical_qubit_color, error_color, error_qubits, current_path):
+    """
+    Internal recursive function to draw physical qubits and check for errors for the QEC model.
+    """
+    if level > max_level:
+        return
+
+    child_radius = radius * scale_factor
+    distance_from_parent_center = radius * (1 - scale_factor)
+
+    for i in range(num_children):
+        child_path = current_path + [i]
+        angle_rad = np.deg2rad(360 / num_children * i)
+        child_x = x + distance_from_parent_center * np.cos(angle_rad)
+        child_y = y + distance_from_parent_center * np.sin(angle_rad)
+        
+        qubit_color = error_color if child_path in error_qubits else physical_qubit_color
+        _draw_circle_patch(ax, (child_x, child_y), child_radius, face_color=qubit_color, lw=0.75)
+
+        _draw_recursive_qec(ax, child_x, child_y, child_radius, level + 1,
+                            max_level, num_children, scale_factor,
+                            physical_qubit_color, error_color, error_qubits, child_path)
+
+def visualize_qec_fractal(
+    physical_qubits_per_level: int = 5, recursion_level: int = 1,
+    error_qubits: list = None,
+    logical_qubit_color: str = '#4A90E2',      # Blue
+    physical_qubit_color: str = '#E0E0E0',    # Light Gray
+    error_color: str = '#D0021B',             # Red
+    background_color: str = '#1C1C1C',        # Dark Gray
+    scale_factor: float = 0.5, filename: str = "qec_fractal_visualization",
+    dpi: int = 300
+    ):
+    """
+    Visualizes a Quantum Error Correction (QEC) code concept using Keçeci Fractals.
+    """
+    error_qubits = [] if error_qubits is None else error_qubits
+
+    fig, ax = plt.subplots(figsize=(12, 12))
+    fig.patch.set_facecolor(background_color)
+    
+    base_radius = 5.0
+
+    # Draw the Logical Qubit
+    _draw_circle_patch(ax, (0, 0), base_radius, face_color=logical_qubit_color, lw=1.5)
+    ax.text(0, 0, 'L', color='white', ha='center', va='center', fontsize=40, fontweight='bold', fontfamily='sans-serif')
+
+    # Draw the Physical Qubits
+    if recursion_level >= 1:
+        initial_radius = base_radius * scale_factor
+        dist_initial = base_radius * (1 - scale_factor)
+        for i in range(physical_qubits_per_level):
+            child_path = [i]
+            angle_rad = np.deg2rad(360 / physical_qubits_per_level * i)
+            ix, iy = dist_initial * np.cos(angle_rad), dist_initial * np.sin(angle_rad)
+            qubit_color = error_color if child_path in error_qubits else physical_qubit_color
+            
+            _draw_circle_patch(ax, (ix, iy), initial_radius, face_color=qubit_color, lw=0.75)
+            # Add a number label to the first-level qubits for clarity
+            ax.text(ix, iy, str(i), color='black', ha='center', va='center', fontsize=12, fontweight='bold')
+
+            _draw_recursive_qec(ax, ix, iy, initial_radius, 2, recursion_level,
+                                physical_qubits_per_level, scale_factor,
+                                physical_qubit_color, error_color, error_qubits, child_path)
+
+    # Finalize and Save the Plot
+    ax.set_xlim(-base_radius - 1.5, base_radius + 1.5)
+    ax.set_ylim(-base_radius - 1.5, base_radius + 1.5)
+    ax.set_aspect('equal', adjustable='box')
+    ax.axis('off')
+    
+    title = f"QEC Fractal Model: {physical_qubits_per_level}-Qubit Code | Level: {recursion_level} | Errors: {len(error_qubits)}"
+    plt.title(title, color='white', fontsize=18, pad=20)
+    
+    output_filename = f"{filename}.png"
+    plt.savefig(output_filename, format='png', dpi=dpi, bbox_inches='tight', facecolor=fig.get_facecolor())
+    plt.close(fig)
+    print(f"Visualization saved to: '{os.path.abspath(output_filename)}'")
+
+
+# ==============================================================================
+# PART 3: MODULE TESTS
+# ==============================================================================
+
 if __name__ == "__main__":
     print(f"--- Running Test Cases for {os.path.basename(__file__)} ---")
 
-    print("\n[Test 1: Displaying fractal inline/window (output_mode='show')]")
+    # --- General-Purpose Fractal Tests ---
+    print("\n--- PART 1: General-Purpose Fractal Tests ---")
+    print("\n[Test 1.1: Displaying fractal on screen (show)]")
     kececifractals_circle(
         initial_children=5,
         recursive_children=4,
         text="Test Show",
         max_level=3,
-        scale_factor=0.5,
-        min_size_factor=0.001,
         output_mode='show'
     )
-    print("--- Test 1 Complete ---")
-
-
-    print("\n[Test 2: Saving fractal as PNG]")
+    
+    print("\n[Test 1.2: Saving fractal as PNG]")
     kececifractals_circle(
         initial_children=7,
         recursive_children=3,
-        text="Test PNG",
-        max_level=4,
-        scale_factor=0.5,
-        min_size_factor=0.001,
-        base_radius=5,
-        background_color='#101030', # Dark blue hex
+        text="Test PNG Save",
+        background_color='#101030',
         initial_circle_color='yellow',
         output_mode='png',
-        filename="test_fractal_output_png-1",
-        dpi=150 # Lower DPI for quick test save
+        filename="test_fractal_generic"
     )
-    print("--- Test 2 Complete ---")
 
-    print("\n[Test 3: Saving fractal as SVG]")
-    kececifractals_circle(
-        initial_children=6,
-        recursive_children=5,
-        text="Test SVG",
-        max_level=2, # Shallow level for quick test
-        scale_factor=0.5,
-        min_size_factor=0.001,
-        output_mode='svg',
-        filename="test_fractal_output_svg-1"
+    # --- QEC Visualization Tests ---
+    print("\n--- PART 2: QEC Visualization Tests ---")
+    print("\n[Test 2.1: Generating an error-free 7-qubit code...]")
+    visualize_qec_fractal(
+        physical_qubits_per_level=7,
+        recursion_level=1,
+        error_qubits=[],
+        filename="QEC_Model_Test_No_Errors"
     )
-    print("--- Test 3 Complete ---")
 
-    print("\n[Test 4: Invalid Mode]")
-    kececifractals_circle(output_mode='gif') # Intentionally invalid
-    print("--- Test 4 Complete ---")
+    print("\n[Test 2.2: Generating a 7-qubit code with a single error...]")
+    visualize_qec_fractal(
+        physical_qubits_per_level=7,
+        recursion_level=1,
+        error_qubits=[[3]],
+        filename="QEC_Model_Test_Single_Error"
+    )
+    
+    print("\n[Test 2.3: Generating a 2-level code with a deep-level error...]")
+    visualize_qec_fractal(
+        physical_qubits_per_level=5,
+        recursion_level=2,
+        error_qubits=[[4, 1]],
+        filename="QEC_Model_Test_Deep_Error"
+    )
 
-    print("\n--- All Direct Execution Tests Finished ---")
+    print("\n--- All Tests Completed ---")

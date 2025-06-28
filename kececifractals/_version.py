@@ -1,6 +1,6 @@
 # _version.py
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __license__ = "MIT"
 __description__ = "Keçeci Fractals: Keçeci-style circle fractal."
 __author__ = "Mehmet Keçeci"

@@ -14,6 +14,8 @@ import random
 import math
 import sys
 import os
+import networkx as nx # STRATUM MODEL VISUALIZATION
+import kececilayout as kl # STRATUM MODEL VISUALIZATION
 
 # --- GENERAL HELPER FUNCTIONS ---
 
@@ -229,9 +231,112 @@ def visualize_qec_fractal(
     plt.close(fig)
     print(f"Visualization saved to: '{os.path.abspath(output_filename)}'")
 
+# ==============================================================================
+# PART 3: STRATUM MODEL VISUALIZATION
+# ==============================================================================
+# import networkx as nx
+# import kececilayout as kl
+
+def _draw_recursive_stratum_circles(ax, cx, cy, radius, level, max_level, 
+                                    state_collection, branching_rule_func, node_properties_func):
+    """
+    Internal recursive helper to draw the Stratum Circular Fractal.
+    It uses provided functions for branching and node properties. Not for direct use.
+    """
+    if level >= max_level:
+        return
+
+    # Draw the main circle representing the quantum state
+    level_color = plt.cm.plasma(level / max_level)
+    ax.add_patch(plt.Circle((cx, cy), radius, facecolor=level_color, alpha=0.2, zorder=level))
+    
+    # Get node properties using the PASSED-IN function
+    node_props = node_properties_func(level, 0)
+    ax.plot(cx, cy, 'o', markersize=node_props['size'], color='white', alpha=0.8, zorder=level + max_level)
+    
+    # Add this state's data to our collection
+    state_collection.append({
+        'id': len(state_collection),
+        'level': level,
+        'energy': node_props['energy'],
+        'size': node_props['size'],
+        'color': level_color
+    })
+    
+    # Determine the number of child states using the PASSED-IN function
+    num_children = branching_rule_func(level)
+    
+    # Position and draw the child circles
+    scale_factor = 0.5
+    child_radius = radius * scale_factor
+    distance_from_center = radius * (1 - scale_factor)
+
+    for i in range(num_children):
+        angle = 2 * math.pi * i / num_children + random.uniform(-0.1, 0.1)
+        child_cx = cx + distance_from_center * math.cos(angle)
+        child_cy = cy + distance_from_center * math.sin(angle)
+        
+        _draw_recursive_stratum_circles(ax, child_cx, child_cy, child_radius, level + 1, max_level,
+                                        state_collection, branching_rule_func, node_properties_func)
+
+def visualize_stratum_model(ax, max_level, branching_rule_func, node_properties_func, 
+                            initial_radius=100, start_cx=0, start_cy=0):
+    """
+    Public-facing function to visualize the Stratum Model as a circular fractal.
+    This is the main entry point from your script.
+
+    Args:
+        ax: The matplotlib axes object to draw on.
+        max_level (int): The maximum recursion depth.
+        branching_rule_func (function): A function that takes a level (int) and returns the number of branches.
+        node_properties_func (function): A function that takes a level and branch_index and returns a dict of properties (e.g., {'size': ..., 'energy': ...}).
+        initial_radius (float): The radius of the first circle.
+        start_cx, start_cy (float): The center coordinates of the first circle.
+
+    Returns:
+        list: A list of dictionaries, where each dictionary represents a generated state.
+    """
+    state_collection = []
+    _draw_recursive_stratum_circles(ax, start_cx, start_cy, initial_radius, 0, max_level,
+                                    state_collection, branching_rule_func, node_properties_func)
+    return state_collection
+
+def visualize_sequential_spectrum(ax, state_collection):
+    """
+    Draws all collected quantum states in a sequential spectrum using the Keçeci Layout,
+    including dotted lines to show the connection between consecutive states.
+    """
+    if not state_collection:
+        ax.text(0.5, 0.5, "No Data Available", color='white', ha='center', va='center')
+        return
+
+    G = nx.Graph()
+    for state_data in state_collection:
+        G.add_node(state_data['id'], **state_data)
+        
+    if len(G.nodes()) > 1:
+        for i in range(len(G.nodes()) - 1):
+            G.add_edge(i, i + 1)
+            
+    pos = kl.kececi_layout(G, primary_direction='top-down', primary_spacing=1.5, secondary_spacing=1.0)
+
+    node_ids = list(G.nodes())
+    node_sizes = [G.nodes[n]['size'] * 5 for n in node_ids]
+    node_colors = [G.nodes[n]['color'] for n in node_ids]
+
+    nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors,
+                           edgecolors='white', linewidths=0.5, ax=ax)
+    
+    nx.draw_networkx_edges(
+        G, pos, ax=ax, style='dotted', edge_color='gray', alpha=0.7
+    )
+    
+    ax.set_title("Sequential State Spectrum (Keçeci Layout)", color='white', fontsize=12)
+    ax.set_facecolor('#1a1a1a')
+    ax.axis('off')
 
 # ==============================================================================
-# PART 3: MODULE TESTS
+# PART 4: MODULE TESTS
 # ==============================================================================
 
 if __name__ == "__main__":

@@ -19,6 +19,8 @@ setup(
     install_requires=[
         "numpy",
         "matplotlib",
+        "networkx",
+        "kececilayout",
     ],
     extras_require={
 

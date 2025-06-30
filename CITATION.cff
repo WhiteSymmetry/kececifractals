@@ -22,7 +22,9 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.15396198
   - type: doi
-    value: 10.48546/workflowhub.datafile.16.2
+    value: 10.48546/workflowhub.datafile.16.3
+- type: doi
+    value: 10.22541/au.175131225.56823239/v1
 repository-code: 'https://github.com/WhiteSymmetry/kececifractals'
 url: 'https://github.com/WhiteSymmetry/kececifractals'
 repository: 'https://anaconda.org/bilgi/kececifractals'

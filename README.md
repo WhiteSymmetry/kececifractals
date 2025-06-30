@@ -10,7 +10,9 @@ Keçeci Circle Fractal: Keçeci-style circle fractal.
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15392773.svg)](https://doi.org/10.5281/zenodo.15392773)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15396198.svg)](https://doi.org/10.5281/zenodo.15396198)
 
-[![WorkflowHub DOI](https://img.shields.io/badge/DOI-10.48546%2Fworkflowhub.datafile.16.2-blue)](https://doi.org/10.48546/workflowhub.datafile.16.2)
+[![WorkflowHub DOI](https://img.shields.io/badge/DOI-10.48546%2Fworkflowhub.datafile.16.2-blue)](https://doi.org/10.48546/workflowhub.datafile.16.3)
+
+[![Authorea DOI](https://img.shields.io/badge/DOI-10.22541/au.175131225.56823239/v1-blue)](https://doi.org/10.22541/au.175131225.56823239/v1)
 
 [![Anaconda-Server Badge](https://anaconda.org/bilgi/kececifractals/badges/version.svg)](https://anaconda.org/bilgi/kececifractals)
 [![Anaconda-Server Badge](https://anaconda.org/bilgi/kececifractals/badges/latest_release_date.svg)](https://anaconda.org/bilgi/kececifractals)
@@ -196,7 +198,9 @@ If this library was useful to you in your research, please cite us. Following th
 ### APA
 
 ```
-Keçeci, M. (2025). kececifractals [Data set]. WorkflowHub. https://doi.org/10.48546/workflowhub.datafile.16.2
+Keçeci, M. (2025). Scalable Complexity in Fractal Geometry: The Keçeci Fractal Approach. Authorea. June, 2025. https://doi.org/10.22541/au.175131225.56823239/v1
+
+Keçeci, M. (2025). kececifractals [Data set]. WorkflowHub. https://doi.org/10.48546/workflowhub.datafile.16.3
 
 Keçeci, M. (2025). kececifractals. Zenodo. https://doi.org/10.5281/zenodo.15392518
 
@@ -207,7 +211,9 @@ Keçeci, M. (2025). Scalable Complexity: Mathematical Analysis and Potential for
 
 ### Chicago
 ```
-Keçeci, MehmetKeçeci, M. kececifractals [Data set]. WorkflowHub, 2025. https://doi.org/10.48546/workflowhub.datafile.16.2
+Keçeci, Mehmet. Scalable Complexity in Fractal Geometry: The Keçeci Fractal Approach. Authorea. June, 2025. https://doi.org/10.22541/au.175131225.56823239/v1
+
+Keçeci, Mehmet. "kececifractals" [Data set]. WorkflowHub, 2025. https://doi.org/10.48546/workflowhub.datafile.16.3
 
 Keçeci, Mehmet. "kececifractals". Zenodo, 01 May 2025. https://doi.org/10.5281/zenodo.15392518
 

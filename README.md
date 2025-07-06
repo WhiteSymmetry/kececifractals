@@ -50,6 +50,14 @@ Keçeci Circle Fractal: Keçeci-style circle fractal.
                 </a>
             </td>
         </tr>
+        <tr>
+            <td style="text-align: center;">License: MIT</td>
+            <td style="text-align: center;">
+                <a href="https://opensource.org/licenses/MIT">
+                    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License" height="18"/>
+                </a>
+            </td>
+        </tr>
     </table>
 </p>
 

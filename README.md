@@ -24,6 +24,35 @@ Keçeci Circle Fractal: Keçeci-style circle fractal.
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects//badge)](https://www.bestpractices.dev/projects/)
 
+<p align="left">
+    <table>
+        <tr>
+            <td style="text-align: center;">PyPI</td>
+            <td style="text-align: center;">
+                <a href="https://pypi.org/project/kececifractals/">
+                    <img src="https://badge.fury.io/py/kececifractals.svg" alt="PyPI version" height="18"/>
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td style="text-align: center;">Conda</td>
+            <td style="text-align: center;">
+                <a href="https://anaconda.org/bilgi/kececifractals">
+                    <img src="https://anaconda.org/bilgi/kececifractals/badges/version.svg" alt="conda-forge version" height="18"/>
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td style="text-align: center;">DOI</td>
+            <td style="text-align: center;">
+                <a href="https://doi.org/10.5281/zenodo.15392518">
+                    <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.15392518.svg" alt="DOI" height="18"/>
+                </a>
+            </td>
+        </tr>
+    </table>
+</p>
+
 ---
 
 ## Description / Açıklama

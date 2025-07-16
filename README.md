@@ -24,6 +24,16 @@ Keçeci Circle Fractal: Keçeci-style circle fractal.
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects//badge)](https://www.bestpractices.dev/projects/)
 
+[![Python CI](https://github.com/WhiteSymmetry/kececifractals/actions/workflows/python_ci.yml/badge.svg?branch=main)](https://github.com/WhiteSymmetry/kececifractals/actions/workflows/python_ci.yml)
+[![codecov](https://codecov.io/gh/WhiteSymmetry/kececifractals/graph/badge.svg?token=???)](https://codecov.io/gh/WhiteSymmetry/kececifractals)
+[![Documentation Status](https://readthedocs.org/projects/kececifractals/badge/?version=latest)](https://kececifractals.readthedocs.io/en/latest/)
+[![Binder](https://terrarium.evidencepub.io/badge_logo.svg)](https://terrarium.evidencepub.io/v2/gh/WhiteSymmetry/kececifractals/HEAD)
+[![PyPI version](https://badge.fury.io/py/kececifractals.svg)](https://badge.fury.io/py/kececifractals)
+[![PyPI Downloads](https://static.pepy.tech/badge/kececifractals)](https://pepy.tech/projects/kececifractals)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+
+---
+
 <p align="left">
     <table>
         <tr>

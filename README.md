@@ -248,11 +248,13 @@ If this library was useful to you in your research, please cite us. Following th
 ```
 Keçeci, M. (2025). Scalable Complexity in Fractal Geometry: The Keçeci Fractal Approach. Authorea. June, 2025. https://doi.org/10.22541/au.175131225.56823239/v1
 
-Keçeci, M. (2025). kececifractals [Data set]. WorkflowHub. https://doi.org/10.48546/workflowhub.datafile.16.3
+Keçeci, M. (2025). Keçeci Fractals. Open Work Flow Articles (OWFAs), WorkflowHub https://doi.org/10.48546/workflowhub.document.32.2
 
-Keçeci, M. (2025). kececifractals. Zenodo. https://doi.org/10.5281/zenodo.15392518
+Keçeci, M. (2025, May 13). Scalable complexity: Mathematical analysis and potential for physical applications of the Keçeci circle fractal. Open Science Articles (OSAs), Zenodo. https://doi.org/10.5281/zenodo.15392772
 
-Keçeci, M. (2025). Scalable Complexity: Mathematical Analysis and Potential for Physical Applications of the Keçeci Circle Fractal. https://doi.org/10.5281/zenodo.15396198
+Keçeci, M. (2025). kececifractals [Data set]. Open Work Flow Articles (OWFAs), WorkflowHub https://doi.org/10.48546/workflowhub.datafile.16.3
+
+Keçeci, M. (2025, May 13). Kececifractals. Open Science Articles (OSAs), Zenodo. https://doi.org/10.5281/zenodo.15392518
 
 
 ```

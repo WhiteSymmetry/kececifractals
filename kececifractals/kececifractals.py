@@ -318,7 +318,7 @@ def visualize_sequential_spectrum(ax, state_collection):
         for i in range(len(G.nodes()) - 1):
             G.add_edge(i, i + 1)
             
-    pos = kl.kececi_layout(G, primary_direction='top-down', primary_spacing=1.5, secondary_spacing=1.0)
+    pos = kl.kececi_layout(G, primary_direction='top_down', primary_spacing=1.5, secondary_spacing=1.0)
 
     node_ids = list(G.nodes())
     node_sizes = [G.nodes[n]['size'] * 5 for n in node_ids]

@@ -10,6 +10,9 @@ import warnings
 # if os.getenv("DEVELOPMENT") == "true":
     # importlib.reload(kececifractals) # F821 undefined name 'kececifractals'
 
+# Paket sürüm numarası
+__version__ = "0.1.4"
+
 __all__ = [
     'random_soft_color',
     '_draw_circle_patch',
@@ -55,7 +58,3 @@ def eski_fonksiyon():
         category=DeprecationWarning,
         stacklevel=2
     )
-
-
-# Paket sürüm numarası
-__version__ = "0.1.3"

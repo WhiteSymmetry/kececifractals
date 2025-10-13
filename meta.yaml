@@ -20,11 +20,11 @@ requirements:
     - numpy
     # Other build tools
   run:
-    - python >=3.9,<3.14
+    - python >=3.10
     - numpy
     # Other runtime dependencies
   build:
-    - python >=3.9,<3.14
+    - python >=3.10
     - pip
 
 test:

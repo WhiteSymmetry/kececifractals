@@ -11,7 +11,7 @@ import warnings
     # importlib.reload(kececifractals) # F821 undefined name 'kececifractals'
 
 # Paket sürüm numarası
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 __all__ = [
     'random_soft_color',

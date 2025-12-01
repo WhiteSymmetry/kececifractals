@@ -5,7 +5,9 @@ package:
   version: {{ version }}
 
 source:
-  path: kececifractals/
+  path: .  # Derlemeyi bu meta.yaml dosyasının bulunduğu dizinden yap
+  url: https://files.pythonhosted.org/packages/75/92/f2f47925b3a2fa03419c74ef6180f864694f97a2972b7ff721f2d6a9fbb4/kececifractals-0.1.5.tar.gz
+  sha256: a86f2b83d9031c274595a9518ce39fadc261294c615adbf68db96026585419ba
 
 build:
   noarch: python  # Platformdan bağımsız bir paket oluşturur

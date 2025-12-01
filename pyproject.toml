@@ -1,3 +1,68 @@
-[build-system]
-requires = ["setuptools>=77.0", "wheel"]
-build-backend = "setuptools.build_meta"
+[project]
+name = "kececifractals"
+version = "0.1.5"
+
+# Diğer proje bilgileri (isteğe bağlı ama tavsiye edilir)
+authors = [
+    { name="Mehmet Keçeci", email="mkececi@yaani.com" },
+]
+description = "Keçeci Fractals: Keçeci-style circle fractal."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file="LICENSE" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+
+# Ana bağımlılıklarınız
+dependencies = [
+    "kececilayout",
+    "networkx",
+    "matplotlib",
+    "numpy",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "ruff",
+    "kececilayout",
+    "networkx",
+    "matplotlib",
+    "numpy",
+]
+
+[dependency-groups]
+dev = [{include-group = "test"}]
+test = ["pytest"]
+build = [
+    "setuptools (>=80.9.0,<81.0.0)",
+    "cython (>=3.2.2,<4.0.0)"
+]
+
+[tool.pytest.ini_options]
+log_level = "INFO"
+xfail_strict = true
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+filterwarnings = ["error"]
+minversion = "6.0"
+testpaths = [
+    "tests",
+    "integration",
+]
+
+[tool.readthedocs]
+version = 2
+build.image = "stable"
+python.version = "3.11"
+configuration = "docs/conf.py"  # Build konfigürasyonu belirtin
+
+[project.urls]
+"Homepage" = "https://github.com/WhiteSymmetry/kececifractals"
+"Bug Tracker" = "https://github.com/WhiteSymmetry/kececifractals/issues"

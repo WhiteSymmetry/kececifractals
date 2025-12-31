@@ -4,7 +4,7 @@
 Keçeci Circle Fractal: Keçeci-style circle fractal.
 
 [![PyPI version](https://badge.fury.io/py/kececifractals.svg)](https://badge.fury.io/py/kececifractals)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL](https://img.shields.io/badge/License-AGPL-yellow.svg)](https://opensource.org/licenses/AGPL)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15392518.svg)](https://doi.org/10.5281/zenodo.15392518)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15392773.svg)](https://doi.org/10.5281/zenodo.15392773)
@@ -62,10 +62,10 @@ Keçeci Circle Fractal: Keçeci-style circle fractal.
             </td>
         </tr>
         <tr>
-            <td style="text-align: center;">License: MIT</td>
+            <td style="text-align: center;">License: AGPL</td>
             <td style="text-align: center;">
-                <a href="https://opensource.org/licenses/MIT">
-                    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License" height="18"/>
+                <a href="https://opensource.org/licenses/AGPL">
+                    <img src="https://img.shields.io/badge/License-AGPL-yellow.svg" alt="License" height="18"/>
                 </a>
             </td>
         </tr>
@@ -209,7 +209,7 @@ kf.kececifractals_circle(output_mode='show', text="Keçeci Circle Fractal: Keçe
 
 ## License / Lisans
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the AGPL License. See the `LICENSE` file for details.
 
 ## Citation
 

@@ -272,6 +272,7 @@ Keçeci, Mehmet. "Scalable Complexity: Mathematical Analysis and Potential for P
 ```
 
 🧬🦠🧊🧂💧🛢️🌀🔄➗📏🧱⚙️🎛️🌍🧵🔧🛠️🏗️🧪✅🔬🎚️🌐
+
 Analogy: Scalable complexity: Mathematical analysis and potential for physical applications of the Keçeci circle fractal. Mehmet Keçeci
 
 The Keçeci Circle Fractal is like an architectural system where the builder doesn’t just lay bricks—but can dynamically adjust each brick’s size, count, and spacing on demand.
@@ -291,6 +292,8 @@ Bu analojiler, KÇF’nin öne çıkan yeniliği olan kontrollü, ölçeklenebil
 ![Keçeci Fractals Example](https://github.com/WhiteSymmetry/kececifractals/blob/main/examples/KCF-1.jpg?raw=true)
 
 ---
+
+🌊🔌🌡️
 
 Physics Analogy: Scalable complexity: Mathematical analysis and potential for physical applications of the Keçeci circle fractal. Mehmet Keçeci
 

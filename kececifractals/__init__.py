@@ -56,6 +56,13 @@ __all__ = [
     'example_multiple_fractals',
     'example_view_angles',
     'example_simple_fractal',
+
+    # Exception'lar
+    'KececiFractalError',
+    'FractalParameterError',
+    'ColorParseError',
+    'ThreeDNotSupportedError',
+    'InvalidAxisError',
 ]
 
 try:
@@ -86,6 +93,13 @@ try:
         example_multiple_fractals,
         example_view_angles,
         example_simple_fractal,
+
+        # Exception'lar
+        KececiFractalError,
+        FractalParameterError,
+        ColorParseError,
+        ThreeDNotSupportedError,
+        InvalidAxisError,
     )
 except ImportError as e:
     warnings.warn(f"Gerekli modül yüklenemedi: {e}", ImportWarning)
@@ -153,6 +167,13 @@ def _safe_import():
             example_multiple_fractals,
             example_view_angles,
             example_simple_fractal,
+
+            # Exception'lar
+            KececiFractalError,
+            FractalParameterError,
+            ColorParseError,
+            ThreeDNotSupportedError,
+            InvalidAxisError,
             )
         
     except ImportError as e:
@@ -309,6 +330,10 @@ class ColorParseError(KececiFractalError):
 
 class ThreeDNotSupportedError(KececiFractalError):
     """3D desteklenmiyor hatası."""
+    pass
+
+class InvalidAxisError(KececiFractalError):
+    """Geçersiz eksen hatası."""
     pass
 
 # Exception'ları __all__'a ekle

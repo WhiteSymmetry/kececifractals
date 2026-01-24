@@ -33,6 +33,11 @@ Keçeci Circle Fractal: Keçeci-style circle fractal.
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 [![Linted with Ruff](https://img.shields.io/badge/Linted%20with-Ruff-green?logo=python&logoColor=white)](https://github.com/astral-sh/ruff)
 
+![PyPI Downloads](https://img.shields.io/pypi/dm/kececifractals?logo=pypi&label=PyPi%20downloads)
+[![](https://data.jsdelivr.com/v1/package/gh/WhiteSymmetry/kececifractals/badge)](https://www.jsdelivr.com/package/gh/WhiteSymmetry/kececifractals)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/kececifractals?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/kececifractals)
+[![Socket Badge](https://badge.socket.dev/pypi/package/kececifractals/0.1.5?artifact_id=tar-gz)](https://socket.dev/pypi/package/kececifractals)
+
 ---
 
 <p align="left">

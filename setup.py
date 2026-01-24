@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="kececifractals",
-    version="0.1.5",
+    version="0.1.6",
     description="Keçeci Fractals: Keçeci-style circle fractal.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -27,9 +27,9 @@ setup(
     },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: AGPL-3.0-or-later",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.10',
-    license="MIT",
+    python_requires='>=3.11',
+    license="AGPL-3.0-or-later",
 )

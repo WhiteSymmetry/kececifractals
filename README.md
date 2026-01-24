@@ -321,4 +321,57 @@ Yâni KÇF, yâlnızca bir şekil değil — bir fiziksel davranışın geometri
 
 ---
 
+# Pixi:
+
+[![Pixi](https://img.shields.io/badge/Pixi-Pixi-brightgreen.svg)](https://prefix.dev/channels/bilgi)
+
+pixi init kececifractals
+
+cd kececifractals
+
+pixi workspace channel add https://repo.prefix.dev/bilgi --prepend
+
+✔ Added https://repo.prefix.dev/bilgi
+
+pixi add kececifractals
+
+✔ Added kececifractals >=0.1.6,<2
+
+pixi install
+
+pixi shell
+
+pixi run python -c "import kececifractals; print(kececifractals.__version__)"
+
+### Çıktı: 0.1.6
+
+pixi remove kececifractals
+
+conda install -c https://prefix.dev/bilgi kececifractals
+
+pixi run python -c "import kececifractals; print(kececifractals.__version__)"
+
+### Çıktı: 0.1.6
+
+pixi run pip list | grep kececifractals
+
+### kececifractals  0.1.6
+
+pixi run pip show kececifractals
+
+Name: kececifractals
+
+Version: 0.1.6
+
+Summary: AKeçeci Circle Fractal: Keçeci-style circle fractal.
+
+Home-page: https://github.com/WhiteSymmetry/kececifractals
+
+Author: Mehmet Keçeci
+
+Author-email: Mehmet Keçeci <...>
+
+License: GNU AFFERO GENERAL PUBLIC LICENSE
+
+Copyright (c) 2025-2026 Mehmet Keçeci
 

@@ -5,7 +5,7 @@ Keçeci Fractals - 2D ve 3D Fraktal Oluşturma Kütüphanesi
 Bu kütüphane, Keçeci fraktallarını oluşturmak için kapsamlı bir araç seti sağlar.
 2D dairesel fraktallar, kuantum hata düzeltme görselleştirmeleri ve 3D fraktallar içerir.
 
-Sürüm: 0.1.6
+Sürüm: 0.1.7
 Python: 3.11-3.15
 """
 
@@ -14,7 +14,7 @@ import warnings
 from typing import List, Optional, Tuple, Union, Callable
 
 # Paket sürüm numarası
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 __author__ = "Mehmet Keçeci"
 __email__ = "mkececi@yaani.com"
 __license__ = "AGPL3.0-or-later"

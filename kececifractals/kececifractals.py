@@ -201,13 +201,239 @@ def kececi_3d_fractal(
     show_grid: bool = True,
     grid_alpha: float = 0.1,
     title: Optional[str] = None,
+    show_axis_labels: bool = False,
+    axis_label_color: str = "white",
+    interactive_info: bool = False,
+    return_figure: bool = True,  # YENİ: Figür döndürülsün mü?
+    output_mode: str = "show",  # 'show', 'save', 'return'
+    filename: str = "kececi_fractal_3d",
+    dpi: int = 300,
+    verbose: bool = True,
+) -> Union[None, Tuple[plt.Figure, plt.Axes]]:
+    """
+    Generates and visualizes 3D Keçeci fractals.
+    
+    Parameters:
+    -----------
+    num_children : int
+        Number of child spheres at each level (default: 8)
+    max_level : int
+        Maximum recursion depth (default: 3)
+    scale_factor : float
+        Size reduction factor for child spheres (default: 0.4)
+    base_radius : float
+        Radius of the central sphere (default: 1.0)
+    min_radius : float
+        Minimum sphere radius (stops recursion when reached) (default: 0.05)
+    color_scheme : str
+        Matplotlib colormap name (default: 'plasma')
+    alpha_decay : float
+        Alpha transparency decay factor per level (default: 0.7)
+    figsize : Tuple[int, int]
+        Figure size (width, height) (default: (12, 10))
+    elev : float
+        Elevation angle for 3D view (default: 30)
+    azim : float
+        Azimuth angle for 3D view (default: 45)
+    background_color : str or tuple
+        Background color (default: '#0a0a0a')
+    show_grid : bool
+        Show grid lines (default: True)
+    grid_alpha : float
+        Grid transparency (default: 0.1)
+    title : str or None
+        Custom title (auto-generated if None)
+    show_axis_labels : bool
+        Show X, Y, Z axis labels (default: False)
+    axis_label_color : str
+        Color for axis labels (default: 'white')
+    interactive_info : bool
+        Show interactive instructions (default: False)
+    return_figure : bool
+        Return (fig, ax) tuple instead of showing/saving (default: True)
+    output_mode : str
+        'show', 'save', or 'return' (default: 'show')
+    filename : str
+        Base filename for saving (default: 'kececi_fractal_3d')
+    dpi : int
+        DPI for saved images (default: 300)
+    verbose : bool
+        Print progress information (default: True)
+    
+    Returns:
+    --------
+    None or Tuple[plt.Figure, plt.Axes]
+        Depending on return_figure and output_mode parameters
+    """
+    
+    if not HAS_3D:
+        if verbose:
+            print("Error: 3D plotting not available. Install matplotlib with 3D support.", 
+                  file=sys.stderr)
+        return None if not return_figure else (None, None)
+    
+    # Create figure
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(111, projection="3d")
+    
+    # Set background color
+    bg_color = _parse_color(background_color) or (0.04, 0.04, 0.04)
+    fig.patch.set_facecolor(bg_color)
+    ax.set_facecolor(bg_color)
+    
+    # Create color function
+    cmap = get_cmap_safe(color_scheme)
+    
+    def color_func(level: int) -> Tuple[float, float, float, float]:
+        """Returns color for a given level based on colormap."""
+        return cmap(level / max(max_level, 1))
+    
+    # Generate the fractal
+    center = np.array([0.0, 0.0, 0.0])
+    
+    if verbose:
+        print("Generating 3D fractal...")
+        print(f"   • Level: {max_level}")
+        print(f"   • Children: {num_children}")
+        print(f"   • Color scheme: {color_scheme}")
+    
+    _generate_recursive_3d_fractal(
+        ax,
+        center,
+        base_radius,
+        0,
+        max_level,
+        num_children,
+        scale_factor,
+        min_radius,
+        color_func,
+        alpha_decay,
+    )
+    
+    # Set plot limits
+    max_extent = base_radius * (1 + 2 * scale_factor * max_level) * 1.2
+    ax.set_xlim([-max_extent, max_extent])
+    ax.set_ylim([-max_extent, max_extent])
+    ax.set_zlim([-max_extent, max_extent])
+    
+    # Configure view
+    ax.view_init(elev=elev, azim=azim)
+    
+    # Grid settings
+    if show_grid:
+        ax.grid(True, alpha=grid_alpha, linestyle="--", linewidth=0.5)
+    else:
+        ax.grid(False)
+    
+    # Axis labels
+    if show_axis_labels:
+        ax.set_xlabel("X", fontsize=10, labelpad=10, color=axis_label_color)
+        ax.set_ylabel("Y", fontsize=10, labelpad=10, color=axis_label_color)
+        ax.set_zlabel("Z", fontsize=10, labelpad=10, color=axis_label_color)
+        
+        ax.xaxis.label.set_color(axis_label_color)
+        ax.yaxis.label.set_color(axis_label_color)
+        ax.zaxis.label.set_color(axis_label_color)
+        ax.tick_params(axis="x", colors=axis_label_color, labelsize=8)
+        ax.tick_params(axis="y", colors=axis_label_color, labelsize=8)
+        ax.tick_params(axis="z", colors=axis_label_color, labelsize=8)
+    else:
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
+    
+    # Title
+    if title is None:
+        title = f"3D Keçeci Fractal (Levels: {max_level}, Children: {num_children})"
+    
+    ax.set_title(title, fontsize=14, fontweight="bold", color="white", pad=20)
+    
+    # Interactive info
+    if interactive_info:
+        info_text = (
+            "Rotate: Left click + drag\n"
+            "Zoom: Mouse wheel\n"
+            "Pan: Right click + drag"
+        )
+        fig.text(
+            0.02,
+            0.02,
+            info_text,
+            fontsize=9,
+            color="white",
+            bbox=dict(boxstyle="round", facecolor="black", alpha=0.7),
+        )
+    
+    plt.tight_layout()
+    
+    # Output handling
+    output_mode = output_mode.lower().strip()
+    
+    if output_mode == "show":
+        plt.show()
+        if return_figure:
+            return fig, ax
+        else:
+            plt.close(fig)
+            return None
+    
+    elif output_mode == "save":
+        if filename:
+            output_filename = f"{filename}.png"
+            try:
+                save_kwargs = {
+                    "bbox_inches": "tight",
+                    "pad_inches": 0.1,
+                    "facecolor": fig.get_facecolor(),
+                    "dpi": dpi,
+                }
+                plt.savefig(output_filename, **save_kwargs)
+                if verbose:
+                    print(f"3D Fractal saved to: '{os.path.abspath(output_filename)}'")
+            except Exception as e:
+                print(f"Error saving file: {e}", file=sys.stderr)
+            finally:
+                if not return_figure:
+                    plt.close(fig)
+        if return_figure:
+            return fig, ax
+        else:
+            plt.close(fig)
+            return None
+    
+    elif output_mode == "return" or return_figure:
+        # Just return the figure without showing
+        return fig, ax
+    
+    else:
+        print(f"Invalid output_mode: '{output_mode}'. Choose 'show', 'save', or 'return'.",
+              file=sys.stderr)
+        plt.close(fig)
+        return None
+
+"""
+def kececi_3d_fractal(
+    num_children: int = 8,
+    max_level: int = 3,
+    scale_factor: float = 0.4,
+    base_radius: float = 1.0,
+    min_radius: float = 0.05,
+    color_scheme: str = "plasma",
+    alpha_decay: float = 0.7,
+    figsize: Tuple[int, int] = (12, 10),
+    elev: float = 30.0,
+    azim: float = 45.0,
+    background_color: Union[str, Tuple[float, float, float], None] = "#0a0a0a",
+    show_grid: bool = True,
+    grid_alpha: float = 0.1,
+    title: Optional[str] = None,
     interactive: bool = False,  # Jupyter'da interactive=False yapıyoruz
     save_filename: Optional[str] = None,
     dpi: int = 150,
 ):
-    """
-    3D Keçeci fraktalı oluşturur ve görselleştirir.
-    """
+
+    #3D Keçeci fraktalı oluşturur ve görselleştirir.
+
 
     if not HAS_3D:
         print("Hata: 3D grafik desteği yok. Lütfen matplotlib 3D modülünü yükleyin.")
@@ -317,6 +543,7 @@ def kececi_3d_fractal(
 
     print("3D fraktal hazır!")
     return fig, ax
+"""
 
 
 def _draw_recursive_circles(

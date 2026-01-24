@@ -1,4 +1,4 @@
-{% set version = "0.1.5" %}
+{% set version = "0.1.6" %}
 
 package:
   name: kececifractals
@@ -6,8 +6,8 @@ package:
 
 source:
   path: .  # Derlemeyi bu meta.yaml dosyasının bulunduğu dizinden yap
-  url: https://files.pythonhosted.org/packages/75/92/f2f47925b3a2fa03419c74ef6180f864694f97a2972b7ff721f2d6a9fbb4/kececifractals-0.1.5.tar.gz
-  sha256: a86f2b83d9031c274595a9518ce39fadc261294c615adbf68db96026585419ba
+  url: 
+  blake2b-256: 
 
 build:
   noarch: python  # Platformdan bağımsız bir paket oluşturur
@@ -22,11 +22,11 @@ requirements:
     - numpy
     # Other build tools
   run:
-    - python >=3.10
+    - python >=3.11
     - numpy
     # Other runtime dependencies
   build:
-    - python >=3.10
+    - python >=3.11
     - pip
 
 test:
@@ -35,7 +35,7 @@ test:
 
 about:
   home: https://github.com/WhiteSymmetry/kececifractals
-  license: MIT
+  license: AGPL3.0-or-later
   summary: 'Keçeci Fractals: Keçeci-style circle fractal.'
   description: |
     Keçeci Fractals: Keçeci-style circle fractal.

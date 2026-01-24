@@ -363,7 +363,7 @@ Name: kececifractals
 
 Version: 0.1.6
 
-Summary: AKeçeci Circle Fractal: Keçeci-style circle fractal.
+Summary: Keçeci Circle Fractal: Keçeci-style circle fractal.
 
 Home-page: https://github.com/WhiteSymmetry/kececifractals
 

@@ -12,6 +12,7 @@ import math
 import os
 import random
 import sys
+import warnings
 from typing import Callable, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
@@ -40,9 +41,37 @@ except ImportError:
             return pos
 
 
+class KececiFractalError(Exception):
+    """Keçeci Fractals için temel exception."""
+
+    pass
+
+
+class FractalParameterError(KececiFractalError):
+    """Fraktal parametre hatası."""
+
+    pass
+
+
+class ColorParseError(KececiFractalError):
+    """Renk parse hatası."""
+
+    pass
+
+
+class ThreeDNotSupportedError(KececiFractalError):
+    """3D desteklenmiyor hatası."""
+
+    pass
+
+
+class InvalidAxisError(KececiFractalError):
+    """Geçersiz eksen hatası."""
+
+    pass
+
+
 # --- GENERAL HELPER FUNCTIONS ---
-
-
 def random_soft_color():
     """Generates a random soft RGB color tuple."""
     return tuple(random.uniform(0.4, 0.95) for _ in range(3))
@@ -124,6 +153,170 @@ def _draw_circle_patch(ax, center, radius, face_color, edge_color="black", lw=0.
 # ==============================================================================
 # PART 1: GENERAL-PURPOSE KEÇECİ FRACTALS
 # ==============================================================================
+def draw_3d_sphere(
+    ax,
+    center: Tuple[float, float, float],
+    radius: float,
+    color: Tuple[float, float, float],
+    alpha: float = 1.0,
+):
+    """
+    3D eksen üzerine küre çizer.
+    """
+    if not HAS_3D:
+        return
+
+    u = np.linspace(0, 2 * np.pi, 20)
+    v = np.linspace(0, np.pi, 20)
+
+    x = center[0] + radius * np.outer(np.cos(u), np.sin(v))
+    y = center[1] + radius * np.outer(np.sin(u), np.sin(v))
+    z = center[2] + radius * np.outer(np.ones(np.size(u)), np.cos(v))
+
+    ax.plot_surface(
+        x,
+        y,
+        z,
+        color=color,
+        alpha=alpha,
+        edgecolor="none",
+        antialiased=True,
+        shade=True,
+        linewidth=0.5,
+    )
+
+
+def kececi_3d_fractal(
+    num_children: int = 8,
+    max_level: int = 3,
+    scale_factor: float = 0.4,
+    base_radius: float = 1.0,
+    min_radius: float = 0.05,
+    color_scheme: str = "plasma",
+    alpha_decay: float = 0.7,
+    figsize: Tuple[int, int] = (12, 10),
+    elev: float = 30.0,
+    azim: float = 45.0,
+    background_color: Union[str, Tuple[float, float, float], None] = "#0a0a0a",
+    show_grid: bool = True,
+    grid_alpha: float = 0.1,
+    title: Optional[str] = None,
+    interactive: bool = False,  # Jupyter'da interactive=False yapıyoruz
+    save_filename: Optional[str] = None,
+    dpi: int = 150,
+):
+    """
+    3D Keçeci fraktalı oluşturur ve görselleştirir.
+    """
+
+    if not HAS_3D:
+        print("Hata: 3D grafik desteği yok. Lütfen matplotlib 3D modülünü yükleyin.")
+        return None, None
+
+    # Figür oluştur
+    fig = plt.figure(figsize=figsize, facecolor="white")
+    ax = fig.add_subplot(111, projection="3d")
+
+    # Arkaplan rengini ayarla
+    bg_color = _parse_color(background_color) or (0.04, 0.04, 0.04)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor(bg_color)
+
+    # Renk fonksiyonunu oluştur
+    color_func = generate_color_function(color_scheme, max_level)
+
+    # Fraktalı oluştur
+    center = np.array([0.0, 0.0, 0.0])
+    print(f"3D fraktal oluşturuluyor...")
+    print(f"   • Seviye: {max_level}")
+    print(f"   • Çocuk sayısı: {num_children}")
+    print(f"   • Renk şeması: {color_scheme}")
+
+    _generate_recursive_3d_fractal(
+        ax,
+        center,
+        base_radius,
+        0,
+        max_level,
+        num_children,
+        scale_factor,
+        min_radius,
+        color_func,
+        alpha_decay,
+    )
+
+    # Grafik sınırlarını ayarla
+    max_extent = base_radius * (1 + 2 * scale_factor * max_level) * 1.2
+    ax.set_xlim([-max_extent, max_extent])
+    ax.set_ylim([-max_extent, max_extent])
+    ax.set_zlim([-max_extent, max_extent])
+
+    # Görünüm açılarını ayarla
+    ax.view_init(elev=elev, azim=azim)
+
+    # Eksen etiketlerini ve ızgarayı ayarla
+    ax.set_xlabel("X", fontsize=10, labelpad=10, color="white")
+    ax.set_ylabel("Y", fontsize=10, labelpad=10, color="white")
+    ax.set_zlabel("Z", fontsize=10, labelpad=10, color="white")
+
+    # Eksen rengini ayarla
+    ax.xaxis.label.set_color("white")
+    ax.yaxis.label.set_color("white")
+    ax.zaxis.label.set_color("white")
+    ax.tick_params(axis="x", colors="white", labelsize=8)
+    ax.tick_params(axis="y", colors="white", labelsize=8)
+    ax.tick_params(axis="z", colors="white", labelsize=8)
+
+    # Izgara ayarları
+    if show_grid:
+        ax.grid(True, alpha=grid_alpha, linestyle="--", linewidth=0.5)
+    else:
+        ax.grid(False)
+
+    # Başlık ekle
+    if title is None:
+        title = f"3D Keçeci Fraktalı | Seviye: {max_level} | Çocuk: {num_children}"
+
+    ax.set_title(title, fontsize=14, fontweight="bold", color="white", pad=20)
+
+    # Unicode karakterleri temizleyen basit bir info text
+    if interactive:
+        info_text = (
+            "Fare ile döndür: Sol tık + sürükle\n"
+            "Yakınlaştır/Uzaklaştır: Fare tekerleği\n"
+            "Kaydır: Sağ tık + sürükle"
+        )
+        fig.text(
+            0.02,
+            0.02,
+            info_text,
+            fontsize=9,
+            color="white",
+            bbox=dict(boxstyle="round", facecolor="black", alpha=0.7),
+        )
+
+    # Grafik düzenini ayarla
+    plt.tight_layout()
+
+    # Kaydetme
+    if save_filename:
+        try:
+            # Font uyarılarını geçici olarak gizle
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning)
+                plt.savefig(
+                    save_filename,
+                    dpi=dpi,
+                    bbox_inches="tight",
+                    facecolor=fig.get_facecolor(),
+                    edgecolor="none",
+                )
+            print(f"Fraktal kaydedildi: {save_filename}")
+        except Exception as e:
+            print(f"Kaydetme hatası: {e}")
+
+    print("3D fraktal hazır!")
+    return fig, ax
 
 
 def _draw_recursive_circles(
@@ -549,7 +742,7 @@ def _draw_3d_sphere(ax, center, radius, color, alpha=1.0):
     )
 
 
-def _create_recursive_3d_fractal(
+def _generate_recursive_3d_fractal(
     ax,
     center,
     radius,
@@ -562,7 +755,7 @@ def _create_recursive_3d_fractal(
     alpha_decay,
 ):
     """
-    Recursive function to create 3D fractal spheres.
+    Recursive function to generate 3D fractal spheres.
     """
     if level > max_level or radius < min_radius:
         return
@@ -597,7 +790,7 @@ def _create_recursive_3d_fractal(
         child_center = center + direction * (radius + child_radius)
 
         # Recursive call
-        _create_recursive_3d_fractal(
+        _generate_recursive_3d_fractal(
             ax,
             child_center,
             child_radius,
@@ -667,7 +860,7 @@ def kececifractals_3d(
         )
         return
 
-    # Create figure and 3D axes
+    # generate figure and 3D axes
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection="3d")
 
@@ -683,9 +876,9 @@ def kececifractals_3d(
         """Returns color for a given level based on colormap."""
         return cmap(level / max(max_level, 1))
 
-    # Create the fractal
+    # generate the fractal
     center = np.array([0.0, 0.0, 0.0])
-    _create_recursive_3d_fractal(
+    _generate_recursive_3d_fractal(
         ax,
         center,
         base_radius,
@@ -916,11 +1109,11 @@ def visualize_sequential_spectrum(ax, state_collection):
     ax.axis("off")
 
 
-def create_color_function(
+def generate_color_function(
     cmap_name: str, max_level: int
 ) -> Callable[[int], Tuple[float, float, float, float]]:
     """
-    Creates a color function that returns colors based on level.
+    generates a color function that returns colors based on level.
 
     Args:
         cmap_name: Name of the matplotlib colormap
@@ -936,6 +1129,670 @@ def create_color_function(
         return cmap(level / max(max_level, 1))
 
     return color_func
+
+
+def optimized_3d_fractal(
+    num_children: int = 6,
+    max_level: int = 3,
+    resolution: int = 15,  # Düşük çözünürlük için
+    show_plot: bool = True,
+):
+    """
+    Optimize edilmiş 3D fraktal (hızlı render için).
+    """
+    if not HAS_3D:
+        return None, None
+
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection="3d")
+
+    # Basit renk fonksiyonu
+    def simple_color_func(level):
+        colors = [(0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.2, 0.2, 0.8), (0.8, 0.8, 0.2)]
+        return colors[level % len(colors)]
+
+    # Optimize edilmiş küre çizimi
+    def draw_sphere_fast(ax, center, radius, color, alpha=0.7):
+        u = np.linspace(0, 2 * np.pi, resolution)
+        v = np.linspace(0, np.pi, resolution)
+
+        x = center[0] + radius * np.outer(np.cos(u), np.sin(v))
+        y = center[1] + radius * np.outer(np.sin(u), np.sin(v))
+        z = center[2] + radius * np.outer(np.ones(np.size(u)), np.cos(v))
+
+        ax.plot_surface(x, y, z, color=color, alpha=alpha, edgecolor="none", shade=True)
+
+    # Optimize edilmiş özyineleme
+    def generate_fractal_fast(
+        ax, center, radius, level, max_level, num_children, scale_factor
+    ):
+        if level > max_level or radius < 0.05:
+            return
+
+        # Küreyi çiz
+        color = simple_color_func(level)
+        draw_sphere_fast(ax, center, radius, color, alpha=0.7 - level * 0.15)
+
+        # Çocuk küreler
+        child_radius = radius * scale_factor
+
+        for i in range(num_children):
+            angle = 2 * np.pi * i / num_children
+            elevation = np.pi * (i % 2) / 2  # Alternatif yükseklik
+
+            x = np.cos(angle) * np.cos(elevation)
+            y = np.sin(angle) * np.cos(elevation)
+            z = np.sin(elevation)
+
+            direction = np.array([x, y, z])
+            direction = direction / np.linalg.norm(direction)
+
+            child_center = center + direction * (radius + child_radius)
+
+            generate_fractal_fast(
+                ax,
+                child_center,
+                child_radius,
+                level + 1,
+                max_level,
+                num_children,
+                scale_factor,
+            )
+
+    # Fraktalı oluştur
+    center = np.array([0.0, 0.0, 0.0])
+    generate_fractal_fast(ax, center, 1.0, 0, max_level, num_children, 0.4)
+
+    # Görünüm ayarları
+    max_extent = 1.0 * (1 + 2 * 0.4 * max_level) * 1.2
+    ax.set_xlim([-max_extent, max_extent])
+    ax.set_ylim([-max_extent, max_extent])
+    ax.set_zlim([-max_extent, max_extent])
+    ax.view_init(elev=25, azim=45)
+
+    ax.set_facecolor("#0a0a0a")
+    ax.grid(True, alpha=0.1)
+    ax.set_title(
+        f"Hızlı 3D Fraktal (Çözünürlük: {resolution})", color="white", fontsize=12
+    )
+
+    if show_plot:
+        plt.tight_layout()
+        plt.show()
+
+    return fig, ax
+
+
+# Her fraktal için ayrı figür oluştur, sonra birleştir
+def generate_single_fractal(num_children, max_level, color_scheme, title):
+    """Tek bir fraktal oluşturur ve surface objelerini döndürür."""
+    fig = plt.figure(figsize=(6, 5))
+    ax = fig.add_subplot(111, projection="3d")
+
+    color_func = generate_color_function(color_scheme, max_level)
+    center = np.array([0.0, 0.0, 0.0])
+
+    # Fraktalı oluştur
+    _generate_recursive_3d_fractal(
+        ax, center, 1.0, 0, max_level, num_children, 0.4, 0.05, color_func, 0.7
+    )
+
+    # Görünüm ayarları
+    max_extent = 1.0 * (1 + 2 * 0.4 * max_level) * 1.2
+    ax.set_xlim([-max_extent, max_extent])
+    ax.set_ylim([-max_extent, max_extent])
+    ax.set_zlim([-max_extent, max_extent])
+    ax.view_init(elev=25, azim=45)
+    ax.set_title(title, fontsize=10, color="white", pad=10)
+    ax.set_facecolor("#0a0a0a")
+    ax.grid(True, alpha=0.1)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+
+    # Surface objelerini topla (list() kullanarak)
+    surfaces = list(ax.collections)
+
+    plt.close(fig)
+    return surfaces
+
+
+def generate_fractal_directly(ax, config: dict):
+    """
+    Fraktalı doğrudan verilen Matplotlib ekseninde oluşturur.
+
+    Parameters:
+    -----------
+    ax : matplotlib.axes._subplots.Axes3DSubplot
+        3D eksen objesi
+    config : dict
+        Fraktal konfigürasyonu:
+        - num_children: Her seviyedeki çocuk sayısı
+        - max_level: Maksimum özyineleme seviyesi
+        - color_scheme: Renk şeması ismi
+        - title: (opsiyonel) Başlık
+        - scale_factor: (opsiyonel) Ölçek faktörü, varsayılan 0.4
+        - base_radius: (opsiyonel) Ana yarıçap, varsayılan 1.0
+        - min_radius: (opsiyonel) Minimum yarıçap, varsayılan 0.05
+        - alpha_decay: (opsiyonel) Alpha azalma faktörü, varsayılan 0.7
+
+    Returns:
+    --------
+    None
+
+    Raises:
+    -------
+    ThreeDNotSupportedError
+        3D grafik desteği yoksa
+    InvalidAxisError
+        Eksen 3D değilse veya geçersizse
+    FractalParameterError
+        Konfigürasyon parametreleri geçersizse
+    """
+    # 3D desteği kontrolü
+    if not HAS_3D:
+        raise ThreeDNotSupportedError(
+            "3D grafik desteği yok. Lütfen matplotlib'in 3D modülünü yükleyin."
+        )
+
+    # Eksen kontrolü
+    try:
+        # Eksenin 3D olup olmadığını kontrol et
+        if not hasattr(ax, "get_proj"):
+            raise InvalidAxisError("Verilen eksen 3D değil.")
+    except AttributeError:
+        raise InvalidAxisError("Geçersiz eksen objesi.")
+
+    # Konfigürasyon validasyonu
+    required_keys = ["num_children", "max_level", "color_scheme"]
+    for key in required_keys:
+        if key not in config:
+            raise FractalParameterError(f"Gerekli parametre eksik: '{key}'")
+
+    # Parametre validasyonu
+    if not isinstance(config["num_children"], int) or config["num_children"] < 1:
+        raise FractalParameterError("num_children pozitif bir tamsayı olmalıdır.")
+
+    if not isinstance(config["max_level"], int) or config["max_level"] < 0:
+        raise FractalParameterError("max_level negatif olmayan bir tamsayı olmalıdır.")
+
+    # Varsayılan değerleri ayarla
+    config.setdefault("scale_factor", 0.4)
+    config.setdefault("base_radius", 1.0)
+    config.setdefault("min_radius", 0.05)
+    config.setdefault("alpha_decay", 0.7)
+
+    # Parametre aralık kontrolü
+    if not (0 < config["scale_factor"] < 1):
+        raise FractalParameterError("scale_factor 0 ile 1 arasında olmalıdır.")
+
+    if config["base_radius"] <= 0:
+        raise FractalParameterError("base_radius pozitif olmalıdır.")
+
+    if config["min_radius"] <= 0:
+        raise FractalParameterError("min_radius pozitif olmalıdır.")
+
+    if not (0 <= config["alpha_decay"] <= 1):
+        raise FractalParameterError("alpha_decay 0 ile 1 arasında olmalıdır.")
+
+    # Renk fonksiyonunu oluştur
+    try:
+        color_func = generate_color_function(
+            config["color_scheme"], config["max_level"]
+        )
+    except Exception as e:
+        raise FractalParameterError(f"Renk şeması oluşturulamadı: {e}")
+
+    center = np.array([0.0, 0.0, 0.0])
+
+    # Fraktalı oluştur
+    try:
+        _generate_recursive_3d_fractal(
+            ax,
+            center,
+            config["base_radius"],
+            0,
+            config["max_level"],
+            config["num_children"],
+            config["scale_factor"],
+            config["min_radius"],
+            color_func,
+            config["alpha_decay"],
+        )
+    except RecursionError:
+        raise FractalParameterError(
+            f"Özyineleme sınırı aşıldı. max_level değerini azaltmayı deneyin."
+        )
+    except Exception as e:
+        raise KececiFractalError(f"Fraktal oluşturulurken hata: {e}")
+
+    # Eksen ayarları
+    max_extent = (
+        config["base_radius"]
+        * (1 + 2 * config["scale_factor"] * config["max_level"])
+        * 1.2
+    )
+    ax.set_xlim([-max_extent, max_extent])
+    ax.set_ylim([-max_extent, max_extent])
+    ax.set_zlim([-max_extent, max_extent])
+    ax.view_init(elev=25, azim=45)
+
+
+def generate_simple_3d_fractal(
+    ax,
+    num_children: int = 6,
+    max_level: int = 3,
+    color_scheme: str = "viridis",
+    **kwargs,
+):
+    """
+    Basit bir 3D fraktal oluşturur.
+
+    Parameters:
+    -----------
+    ax : matplotlib.axes._subplots.Axes3DSubplot
+        3D eksen objesi
+    num_children : int, optional
+        Her seviyedeki çocuk sayısı (varsayılan: 6)
+    max_level : int, optional
+        Maksimum özyineleme seviyesi (varsayılan: 3)
+    color_scheme : str, optional
+        Renk şeması ismi (varsayılan: 'viridis')
+    **kwargs : dict
+        Ek parametreler:
+        - scale_factor: Ölçek faktörü (varsayılan: 0.4)
+        - base_radius: Ana yarıçap (varsayılan: 1.0)
+        - min_radius: Minimum yarıçap (varsayılan: 0.05)
+        - alpha_decay: Alpha azalma faktörü (varsayılan: 0.7)
+        - elev: Görünüm eğim açısı (varsayılan: 25)
+        - azim: Görünüm azimut açısı (varsayılan: 45)
+        - show_grid: Izgara gösterilsin mi? (varsayılan: True)
+        - grid_alpha: Izgara saydamlığı (varsayılan: 0.1)
+        - background_color: Arkaplan rengi (varsayılan: '#0a0a0a')
+        - title: Başlık (varsayılan: None)
+        - title_size: Başlık font boyutu (varsayılan: 14)
+        - title_weight: Başlık font kalınlığı (varsayılan: 'bold')
+        - title_color: Başlık rengi (varsayılan: 'white')
+        - title_pad: Başlık padding'i (varsayılan: 20)
+        - show_axis_labels: Eksen etiketleri gösterilsin mi? (varsayılan: False)
+        - xlabel: X eksen etiketi (varsayılan: 'X')
+        - ylabel: Y eksen etiketi (varsayılan: 'Y')
+        - zlabel: Z eksen etiketi (varsayılan: 'Z')
+        - axis_label_color: Eksen etiketi rengi (varsayılan: 'white')
+        - axis_label_size: Eksen etiketi boyutu (varsayılan: 10)
+        - tick_color: Tick rengi (varsayılan: 'white')
+
+    Returns:
+    --------
+    None
+
+    Raises:
+    -------
+    ThreeDNotSupportedError
+        3D grafik desteği yoksa
+    InvalidAxisError
+        Eksen 3D değilse veya geçersizse
+    FractalParameterError
+        Parametreler geçersizse
+    """
+    # 3D desteği kontrolü
+    if not HAS_3D:
+        raise ThreeDNotSupportedError(
+            "3D grafik desteği yok. Lütfen matplotlib'in 3D modülünü yükleyin."
+        )
+
+    # Eksen kontrolü
+    try:
+        if not hasattr(ax, "get_proj"):
+            raise InvalidAxisError("Verilen eksen 3D değil.")
+    except AttributeError:
+        raise InvalidAxisError("Geçersiz eksen objesi.")
+
+    # Parametre validasyonu
+    if not isinstance(num_children, int) or num_children < 1:
+        raise FractalParameterError("num_children pozitif bir tamsayı olmalıdır.")
+
+    if not isinstance(max_level, int) or max_level < 0:
+        raise FractalParameterError("max_level negatif olmayan bir tamsayı olmalıdır.")
+
+    # Varsayılan değerleri ayarla
+    scale_factor = kwargs.get("scale_factor", 0.4)
+    base_radius = kwargs.get("base_radius", 1.0)
+    min_radius = kwargs.get("min_radius", 0.05)
+    alpha_decay = kwargs.get("alpha_decay", 0.7)
+    elev = kwargs.get("elev", 25)
+    azim = kwargs.get("azim", 45)
+    show_grid = kwargs.get("show_grid", True)
+    grid_alpha = kwargs.get("grid_alpha", 0.1)
+    background_color = kwargs.get("background_color", "#0a0a0a")
+    title = kwargs.get("title", None)
+
+    # Parametre aralık kontrolü
+    if not (0 < scale_factor < 1):
+        raise FractalParameterError("scale_factor 0 ile 1 arasında olmalıdır.")
+
+    if base_radius <= 0:
+        raise FractalParameterError("base_radius pozitif olmalıdır.")
+
+    if min_radius <= 0:
+        raise FractalParameterError("min_radius pozitif olmalıdır.")
+
+    if not (0 <= alpha_decay <= 1):
+        raise FractalParameterError("alpha_decay 0 ile 1 arasında olmalıdır.")
+
+    if not (-90 <= elev <= 90):
+        raise FractalParameterError("elev -90 ile 90 arasında olmalıdır.")
+
+    if not (0 <= azim <= 360):
+        raise FractalParameterError("azim 0 ile 360 arasında olmalıdır.")
+
+    # Arkaplan rengini ayarla
+    try:
+        bg_color = _parse_color(background_color) or (0.04, 0.04, 0.04)
+        ax.set_facecolor(bg_color)
+    except Exception as e:
+        raise ColorParseError(f"Arkaplan rengi parse edilemedi: {e}")
+
+    # Renk fonksiyonunu oluştur
+    try:
+        color_func = generate_color_function(color_scheme, max_level)
+    except Exception as e:
+        raise FractalParameterError(f"Renk şeması oluşturulamadı: {e}")
+
+    center = np.array([0.0, 0.0, 0.0])
+
+    # Fraktalı oluştur
+    try:
+        _generate_recursive_3d_fractal(
+            ax,
+            center,
+            base_radius,
+            0,
+            max_level,
+            num_children,
+            scale_factor,
+            min_radius,
+            color_func,
+            alpha_decay,
+        )
+    except RecursionError:
+        raise FractalParameterError(
+            f"Özyineleme sınırı aşıldı. max_level değerini azaltmayı deneyin."
+        )
+    except Exception as e:
+        raise KececiFractalError(f"Fraktal oluşturulurken hata: {e}")
+
+    # Eksen ayarları
+    max_extent = base_radius * (1 + 2 * scale_factor * max_level) * 1.2
+    ax.set_xlim([-max_extent, max_extent])
+    ax.set_ylim([-max_extent, max_extent])
+    ax.set_zlim([-max_extent, max_extent])
+    ax.view_init(elev=elev, azim=azim)
+
+    # Izgara ayarları
+    if show_grid:
+        ax.grid(True, alpha=grid_alpha, linestyle="--", linewidth=0.5)
+    else:
+        ax.grid(False)
+
+    # Başlık ekle
+    if title:
+        ax.set_title(
+            title,
+            fontsize=kwargs.get("title_size", 14),
+            fontweight=kwargs.get("title_weight", "bold"),
+            color=kwargs.get("title_color", "white"),
+            pad=kwargs.get("title_pad", 20),
+        )
+
+    # Eksen etiketleri
+    if kwargs.get("show_axis_labels", False):
+        ax.set_xlabel(
+            kwargs.get("xlabel", "X"),
+            color=kwargs.get("axis_label_color", "white"),
+            fontsize=kwargs.get("axis_label_size", 10),
+        )
+        ax.set_ylabel(
+            kwargs.get("ylabel", "Y"),
+            color=kwargs.get("axis_label_color", "white"),
+            fontsize=kwargs.get("axis_label_size", 10),
+        )
+        ax.set_zlabel(
+            kwargs.get("zlabel", "Z"),
+            color=kwargs.get("axis_label_color", "white"),
+            fontsize=kwargs.get("axis_label_size", 10),
+        )
+
+        # Eksen etiketi renkleri
+        ax.xaxis.label.set_color(kwargs.get("axis_label_color", "white"))
+        ax.yaxis.label.set_color(kwargs.get("axis_label_color", "white"))
+        ax.zaxis.label.set_color(kwargs.get("axis_label_color", "white"))
+
+        # Tick renkleri
+        ax.tick_params(axis="x", colors=kwargs.get("tick_color", "white"))
+        ax.tick_params(axis="y", colors=kwargs.get("tick_color", "white"))
+        ax.tick_params(axis="z", colors=kwargs.get("tick_color", "white"))
+    else:
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
+
+
+# ==============================================================================
+# ÖRNEK KULLANIM FONKSİYONLARI (isteğe bağlı) - DÜZELTİLMİŞ
+# ==============================================================================
+
+
+def example_multiple_fractals():
+    """
+    Çoklu fraktal karşılaştırması örneği.
+
+    Returns:
+    --------
+    matplotlib.figure.Figure or None
+        Oluşturulan figür veya hata durumunda None
+    """
+    if not HAS_3D:
+        print("Hata: 3D grafik desteği yok.")
+        return None
+
+    try:
+        import matplotlib.pyplot as plt
+
+        # Ana figür oluştur
+        fig, axes = plt.subplots(
+            2, 2, figsize=(15, 12), subplot_kw={"projection": "3d"}
+        )
+        fig.patch.set_facecolor("#111111")
+
+        # Farklı parametre kombinasyonları
+        configs = [
+            {
+                "num_children": 4,
+                "max_level": 2,
+                "color_scheme": "viridis",
+                "title": "Küçük Fraktal",
+            },
+            {
+                "num_children": 8,
+                "max_level": 3,
+                "color_scheme": "plasma",
+                "title": "Orta Fraktal",
+            },
+            {
+                "num_children": 12,
+                "max_level": 3,
+                "color_scheme": "summer",
+                "title": "Yoğun Fraktal",
+            },
+            {
+                "num_children": 6,
+                "max_level": 4,
+                "color_scheme": "cool",
+                "title": "Derin Fraktal",
+            },
+        ]
+
+        # Her fraktalı doğrudan kendi ekseninde oluştur
+        for idx, (ax, config) in enumerate(zip(axes.flat, configs)):
+            try:
+                generate_fractal_directly(ax, config)
+
+                # Eksen görünüm ayarları
+                ax.set_title(
+                    config["title"],
+                    fontsize=11,
+                    fontweight="bold",
+                    color="white",
+                    pad=15,
+                )
+                ax.set_facecolor("#0a0a0a")
+                ax.grid(True, alpha=0.15)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax.set_zticks([])
+
+            except Exception as e:
+                print(f"Fraktal {config['title']} oluşturulurken hata: {e}")
+                # Hata durumunda boş bir metin göster
+                ax.text(0.5, 0.5, 0.5, "Hata", color="red", ha="center", va="center")
+
+        plt.suptitle(
+            "Farklı 3D Keçeci Fraktal Çeşitleri",
+            fontsize=16,
+            fontweight="bold",
+            color="white",
+            y=0.95,
+        )
+        plt.tight_layout()
+
+        return fig
+
+    except Exception as e:
+        print(f"Çoklu fraktal örneği oluşturulurken hata: {e}")
+        return None
+
+
+def example_view_angles():
+    """
+    Farklı görünüm açıları örneği.
+
+    Returns:
+    --------
+    matplotlib.figure.Figure or None
+        Oluşturulan figür veya hata durumunda None
+    """
+    if not HAS_3D:
+        print("Hata: 3D grafik desteği yok.")
+        return None
+
+    try:
+        import matplotlib.pyplot as plt
+
+        # Tek bir fraktal oluştur ve farklı açılardan göster
+        fig = plt.figure(figsize=(12, 8))
+        fig.patch.set_facecolor("#111111")
+
+        # Fraktal parametreleri
+        fractal_params = {
+            "num_children": 8,
+            "max_level": 3,
+            "scale_factor": 0.4,
+            "color_scheme": "hot",
+        }
+
+        # Tüm alt eksenlerde aynı fraktalı oluştur
+        view_angles = [
+            (30, 0, "Ön Görünüm"),
+            (30, 90, "Sağ Görünüm"),
+            (30, 180, "Arka Görünüm"),
+            (30, 270, "Sol Görünüm"),
+        ]
+
+        for idx, (elev, azim, title) in enumerate(view_angles, 1):
+            ax = fig.add_subplot(2, 2, idx, projection="3d")
+
+            # Fraktalı bu eksende oluştur
+            try:
+                generate_simple_3d_fractal(
+                    ax,
+                    num_children=fractal_params["num_children"],
+                    max_level=fractal_params["max_level"],
+                    color_scheme=fractal_params["color_scheme"],
+                    scale_factor=fractal_params["scale_factor"],
+                    elev=elev,
+                    azim=azim,
+                    title=f"{title}\n(elev={elev}°, azim={azim}°)",
+                    title_size=10,
+                    show_axis_labels=False,
+                )
+
+                # Ek ayarlar
+                ax.set_facecolor("#0a0a0a")
+                ax.grid(True, alpha=0.1)
+
+            except Exception as e:
+                print(f"Görünüm açısı {title} oluşturulurken hata: {e}")
+                ax.text(0.5, 0.5, 0.5, "Hata", color="red", ha="center", va="center")
+
+        plt.suptitle(
+            "3D Keçeci Fraktalı - Farklı Görünüm Açıları",
+            fontsize=14,
+            fontweight="bold",
+            color="white",
+            y=0.95,
+        )
+        plt.tight_layout()
+
+        return fig
+
+    except Exception as e:
+        print(f"Görünüm açıları örneği oluşturulurken hata: {e}")
+        return None
+
+
+def example_simple_fractal():
+    """
+    Basit fraktal örneği.
+
+    Returns:
+    --------
+    matplotlib.figure.Figure or None
+        Oluşturulan figür veya hata durumunda None
+    """
+    if not HAS_3D:
+        print("Hata: 3D grafik desteği yok.")
+        return None
+
+    try:
+        import matplotlib.pyplot as plt
+
+        # Yeni bir figür oluştur
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection="3d")
+
+        # Fraktalı oluştur
+        generate_simple_3d_fractal(
+            ax,
+            num_children=7,
+            max_level=4,
+            color_scheme="coolwarm",
+            title="Basit 3D Keçeci Fraktalı",
+            show_axis_labels=True,
+            xlabel="X Ekseni",
+            ylabel="Y Ekseni",
+            zlabel="Z Ekseni",
+        )
+
+        # Figür arkaplan rengi
+        fig.patch.set_facecolor("#111111")
+        plt.tight_layout()
+
+        return fig
+
+    except Exception as e:
+        print(f"Basit fraktal örneği oluşturulurken hata: {e}")
+        return None
 
 
 # ==============================================================================

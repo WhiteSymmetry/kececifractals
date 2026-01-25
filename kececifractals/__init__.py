@@ -13,7 +13,7 @@ import warnings
 from typing import List, Optional, Tuple, Union, Callable
 
 # Paket sürüm numarası
-__version__ = "0.1.8"
+__version__ = "0.1.9"
 __author__ = "Mehmet Keçeci"
 __email__ = "mkececi@yaani.com"
 __license__ = "AGPL3.0-or-later"
@@ -56,6 +56,9 @@ __all__ = [
     "ColorParseError",
     "ThreeDNotSupportedError",
     "InvalidAxisError",
+    "draw_kececi_spiral",
+    "draw_qec_vortex",
+    "draw_chaotic_shells",
 ]
 
 try:
@@ -92,6 +95,9 @@ try:
         ColorParseError,
         ThreeDNotSupportedError,
         InvalidAxisError,
+        draw_kececi_spiral,
+        draw_qec_vortex,
+        draw_chaotic_shells,
     )
 except ImportError as e:
     warnings.warn(f"Gerekli modül yüklenemedi: {e}", ImportWarning)

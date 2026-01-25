@@ -153,6 +153,7 @@ def _draw_circle_patch(ax, center, radius, face_color, edge_color="black", lw=0.
 # ==============================================================================
 # PART 1: GENERAL-PURPOSE KEÇECİ FRACTALS
 # ==============================================================================
+"""
 def draw_3d_sphere(
     ax,
     center: Tuple[float, float, float],
@@ -160,9 +161,8 @@ def draw_3d_sphere(
     color: Tuple[float, float, float],
     alpha: float = 1.0,
 ):
-    """
-    3D eksen üzerine küre çizer.
-    """
+    # 3D eksen üzerine küre çizer.
+
     if not HAS_3D:
         return
 
@@ -184,7 +184,58 @@ def draw_3d_sphere(
         shade=True,
         linewidth=0.5,
     )
+"""
+def draw_3d_sphere(ax, center=(0,0,0), radius=1.0, color='cyan', alpha=0.3):
+    """🌀 3D KÜRE - İKİ VERSİYON BİRLEŞTİRİLDİ"""
+    u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:12j]
+    x = center[0] + radius * np.cos(u) * np.sin(v)
+    y = center[1] + radius * np.sin(u) * np.sin(v)
+    z = center[2] + radius * np.cos(v)
+    
+    if isinstance(color, (tuple, list)):
+        color = color
+    ax.plot_surface(x, y, z, color=color, alpha=alpha, edgecolor="none",
+                   antialiased=True, shade=True, linewidth=0.5)
 
+def draw_kececi_spiral(ax, center=(0,0,0), turns=4, radius=1.2, color='#44ff88', lw=3):
+    """🌀 KEÇECİ SPİRALİ"""
+    t = np.linspace(0, turns*np.pi, 120)
+    r = radius + 0.25*np.sin(6*t)
+    x = r * np.cos(t) * np.sin(t*0.7) + center[0]
+    y = r * np.sin(t) * np.cos(t*1.3) + center[1]
+    z = 0.7 * np.sin(t*2.1) + center[2]
+    ax.plot(x, y, z, color=color, lw=lw, alpha=0.9)
+
+def draw_qec_vortex(ax, center=(0,0,0), major_r=1.1, minor_r=0.4, color='gold', lw=4):
+    """⚛️ QEC VORTEX"""
+    phi = np.linspace(0, 2*np.pi, 80)
+    R = minor_r + 0.12*np.sin(9*phi)
+    x = (major_r + R*np.cos(phi)) * np.cos(phi*0.4) + center[0]
+    y = (major_r + R*np.cos(phi)) * np.sin(phi*0.4) + center[1]
+    z = R * np.sin(phi) + center[2]
+    ax.plot(x, y, z, color=color, lw=lw, alpha=0.85)
+
+def draw_chaotic_shells(ax, scales=[0.9, 0.6, 0.35], alpha=0.3):
+    """🔥 KAOTİK KÜRELER"""
+    u, v = np.mgrid[0:2*np.pi:18j, 0:np.pi:14j]
+    for i, scale in enumerate(scales):
+        distort = 0.18 * np.sin(7*u + i*12)
+        x = scale * (1+distort) * np.cos(u) * np.sin(v)
+        y = scale * (1+distort) * np.sin(u) * np.sin(v)
+        z = scale * np.cos(v)
+        ax.plot_surface(x, y, z, color=f'C{i}', alpha=alpha)
+
+def draw_kececi_fractal_complete(ax, pulse_center=(0,0,0), pulse_r=0.3, frame=0):
+    """🏆 TAM FRACTAL"""
+    draw_kececi_spiral(ax)
+    draw_qec_vortex(ax)
+    draw_chaotic_shells(ax)
+    u, v = np.mgrid[0:2*np.pi:22j, 0:np.pi:14j]
+    pulse_rad = pulse_r + 0.15*np.sin(frame*0.3)
+    x = pulse_rad*np.cos(u)*np.sin(v) + pulse_center[0]
+    y = pulse_rad*np.sin(u)*np.sin(v) + pulse_center[1]
+    z = pulse_rad*np.cos(v) + pulse_center[2]
+    ax.plot_surface(x, y, z, color='cyan', alpha=0.75)
 
 def kececi_3d_fractal(
     num_children: int = 8,

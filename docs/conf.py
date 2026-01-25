@@ -6,8 +6,18 @@ copyright = '2025, Mehmet Keçeci'
 # Version Management
 # from setuptools_scm import get_version
 # version = get_version(root='..', relative_to=__file__)
-version = '0.1.8'  # Replace with your actual version number
-release = version
+#version = '0.1.9'  # Replace with your actual version number
+#release = version
+
+# The full version, including alpha/beta/rc tags
+version = None
+release = None
+
+try:
+    import kececifractals
+    release = getattr(kececifractals, '__version__', release)
+except ImportError as e:
+    print(f"Warning: Could not import kececifractals: {e}")
 
 # General Configuration
 master_doc = 'index'

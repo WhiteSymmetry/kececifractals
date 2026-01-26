@@ -153,6 +153,65 @@ def _draw_circle_patch(ax, center, radius, face_color, edge_color="black", lw=0.
 # ==============================================================================
 # PART 1: GENERAL-PURPOSE KEÇECİ FRACTALS
 # ==============================================================================
+def draw_sphere(
+    ax,
+    center,
+    radius,
+    color,
+    alpha=0.8,
+    resolution_u=20,
+    resolution_v=12,
+    edgecolor='k',
+    linewidth=0.2,
+    shade=True
+):
+    """
+    Draw a 3D sphere using plot_surface.
+    
+    Backward-compatible with previous versions.
+    Supports customizable resolution and styling.
+    
+    Parameters:
+        ax: matplotlib 3D axis
+        center: (x, y, z) tuple or array-like
+        radius: float
+        color: face color
+        alpha: transparency (default: 0.8)
+        resolution_u: longitudinal resolution (default: 20 → matches old behavior)
+        resolution_v: latitudinal resolution (default: 12 → matches old behavior)
+        edgecolor: color of mesh lines (default: 'k' for visible edges)
+        linewidth: width of mesh lines (default: 0.2)
+        shade: enable shading (default: True)
+    """
+    u = np.linspace(0, 2 * np.pi, resolution_u)
+    v = np.linspace(0, np.pi, resolution_v)
+    u, v = np.meshgrid(u, v)
+
+    x = center[0] + radius * np.cos(u) * np.sin(v)
+    y = center[1] + radius * np.sin(u) * np.sin(v)
+    z = center[2] + radius * np.cos(v)
+
+    ax.plot_surface(
+        x, y, z,
+        color=color,
+        alpha=alpha,
+        edgecolor=edgecolor,
+        linewidth=linewidth,
+        shade=shade,
+        antialiased=True
+    )
+
+def get_icosahedron_vertices():
+    """Return 12 normalized vertices of an icosahedron for even 3D distribution."""
+    phi = (1 + np.sqrt(5)) / 2
+    verts = np.array([
+        [-1,  phi, 0], [ 1,  phi, 0], [-1, -phi, 0], [ 1, -phi, 0],
+        [0, -1,  phi], [0,  1,  phi], [0, -1, -phi], [0,  1, -phi],
+        [ phi, 0, -1], [ phi, 0,  1], [-phi, 0, -1], [-phi, 0,  1]
+    ], dtype=float)
+    norms = np.linalg.norm(verts, axis=1, keepdims=True)
+    return verts / norms
+
 """
 def draw_3d_sphere(
     ax,

@@ -59,6 +59,8 @@ __all__ = [
     "draw_kececi_spiral",
     "draw_qec_vortex",
     "draw_chaotic_shells",
+    "draw_sphere",
+    "get_icosahedron_vertices",
 ]
 
 try:
@@ -98,6 +100,8 @@ try:
         draw_kececi_spiral,
         draw_qec_vortex,
         draw_chaotic_shells,
+        draw_sphere,
+        get_icosahedron_vertices,
     )
 except ImportError as e:
     warnings.warn(f"Gerekli modül yüklenemedi: {e}", ImportWarning)
@@ -174,6 +178,8 @@ def _safe_import():
             ColorParseError,
             ThreeDNotSupportedError,
             InvalidAxisError,
+            draw_sphere,
+            get_icosahedron_vertices,
         )
 
     except ImportError as e:

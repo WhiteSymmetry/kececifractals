@@ -1,6 +1,6 @@
 # _version.py
 
-__version__ = "0.1.9"
+__version__ = "0.2.0"
 __license__ = "AGPL3.0-or-later"
 __description__ = "Keçeci Fractals: Keçeci-style circle fractal."
 __author__ = "Mehmet Keçeci"

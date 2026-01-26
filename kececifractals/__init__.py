@@ -13,7 +13,7 @@ import warnings
 from typing import List, Optional, Tuple, Union, Callable
 
 # Paket sürüm numarası
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 __author__ = "Mehmet Keçeci"
 __email__ = "mkececi@yaani.com"
 __license__ = "AGPL3.0-or-later"
@@ -50,7 +50,7 @@ __all__ = [
     "example_multiple_fractals",
     "example_view_angles",
     "example_simple_fractal",
-    # Exception'lar
+    # Exception
     "KececiFractalError",
     "FractalParameterError",
     "ColorParseError",
@@ -61,6 +61,10 @@ __all__ = [
     "draw_chaotic_shells",
     "draw_sphere",
     "get_icosahedron_vertices",
+    "draw_kececi_internal_fractal3d",
+    "draw_kececi_internal_fractal_3d",
+    "draw_kececi_external_fractal3d",
+    "draw_kececi_external_fractal_3d",
 ]
 
 try:
@@ -102,6 +106,10 @@ try:
         draw_chaotic_shells,
         draw_sphere,
         get_icosahedron_vertices,
+        draw_kececi_internal_fractal3d,
+        draw_kececi_internal_fractal_3d,
+        draw_kececi_external_fractal3d,
+        draw_kececi_external_fractal_3d,
     )
 except ImportError as e:
     warnings.warn(f"Gerekli modül yüklenemedi: {e}", ImportWarning)
@@ -180,6 +188,10 @@ def _safe_import():
             InvalidAxisError,
             draw_sphere,
             get_icosahedron_vertices,
+            draw_kececi_internal_fractal3d,
+            draw_kececi_internal_fractal_3d,
+            draw_kececi_external_fractal3d,
+            draw_kececi_external_fractal_3d,
         )
 
     except ImportError as e:

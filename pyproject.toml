@@ -1,6 +1,6 @@
 [project]
 name = "kececifractals"
-version = "0.2.1"
+version = "0.2.2"
 
 # Diğer proje bilgileri (isteğe bağlı ama tavsiye edilir)
 authors = [

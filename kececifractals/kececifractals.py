@@ -254,7 +254,7 @@ def draw_3d_sphere(
     )
 """
 def draw_3d_sphere(ax, center=(0,0,0), radius=1.0, color='cyan', alpha=0.3):
-    """🌀 3D KÜRE - İKİ VERSİYON BİRLEŞTİRİLDİ"""
+    """🌀 3D Küre"""
     u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:12j]
     x = center[0] + radius * np.cos(u) * np.sin(v)
     y = center[1] + radius * np.sin(u) * np.sin(v)
@@ -266,7 +266,7 @@ def draw_3d_sphere(ax, center=(0,0,0), radius=1.0, color='cyan', alpha=0.3):
                    antialiased=True, shade=True, linewidth=0.5)
 
 def draw_kececi_spiral(ax, center=(0,0,0), turns=4, radius=1.2, color='#44ff88', lw=3):
-    """🌀 KEÇECİ SPİRALİ"""
+    """🌀 Spiral"""
     t = np.linspace(0, turns*np.pi, 120)
     r = radius + 0.25*np.sin(6*t)
     x = r * np.cos(t) * np.sin(t*0.7) + center[0]
@@ -284,7 +284,7 @@ def draw_qec_vortex(ax, center=(0,0,0), major_r=1.1, minor_r=0.4, color='gold', 
     ax.plot(x, y, z, color=color, lw=lw, alpha=0.85)
 
 def draw_chaotic_shells(ax, scales=[0.9, 0.6, 0.35], alpha=0.3):
-    """🔥 KAOTİK KÜRELER"""
+    """🔥 Kaotik Küreler"""
     u, v = np.mgrid[0:2*np.pi:18j, 0:np.pi:14j]
     for i, scale in enumerate(scales):
         distort = 0.18 * np.sin(7*u + i*12)
@@ -294,7 +294,7 @@ def draw_chaotic_shells(ax, scales=[0.9, 0.6, 0.35], alpha=0.3):
         ax.plot_surface(x, y, z, color=f'C{i}', alpha=alpha)
 
 def draw_kececi_fractal_complete(ax, pulse_center=(0,0,0), pulse_r=0.3, frame=0):
-    """🏆 TAM FRACTAL"""
+    """🏆 Tam Fractal"""
     draw_kececi_spiral(ax)
     draw_qec_vortex(ax)
     draw_chaotic_shells(ax)
@@ -1922,7 +1922,7 @@ def generate_simple_3d_fractal(
         ax.set_yticks([])
         ax.set_zticks([])
 
-def draw_kececi_internal_fractal_3d(
+def draw_kececi_internal_fractal3d(
     ax,
     center=(0, 0, 0),
     radius=1.0,
@@ -1966,7 +1966,7 @@ def draw_kececi_internal_fractal_3d(
     if depth == 0:
         return
 
-    # Çocuk küreler: ebeveynin İÇİNE, iç yüzeye teğet
+    # Çocuk küreler: ebeveynin içine, iç yüzeye teğet
     child_radius = radius * scale_factor
     directions = get_icosahedron_vertices()[:num_children]
     # Merkezden mesafe = R_ebeveyn - R_çocuk → iç teğet
@@ -2029,8 +2029,117 @@ def draw_kececi_internal_fractal_3d(
             current_depth=current_depth + 1
         )
 
+def draw_kececi_external_fractal3d(
+    ax,
+    center=(0, 0, 0),
+    radius=1.0,
+    depth=3,
+    num_children=8,
+    scale_factor=0.45,
+    min_radius=0.02,
+    current_depth=0
+):
+    """
+    🌀 Keçeci External Fractal (3D)
+    - Küreler dışa doğru büyür.
+    - Her seviye belirgin renkle gösterilir.
+    - Fiziksel olarak tutarlı (katı cisimler çarpışmaz).
+    """
+    if depth < 0 or radius < min_radius:
+        return
+
+    # Belirgin renk paleti (derinliğe göre)
+    color_palette = [
+        (0.1, 0.2, 0.8),   # depth 0: koyu mavi
+        (0.0, 0.8, 0.9),   # depth 1: turkuaz
+        (0.2, 0.9, 0.4),   # depth 2: parlak yeşil
+        (0.9, 0.9, 0.2),   # depth 3: sarı
+        (0.9, 0.3, 0.2),   # depth 4: turuncu-kırmızı
+        (0.6, 0.1, 0.6),   # depth 5: mor
+    ]
+    color = color_palette[current_depth % len(color_palette)]
+
+    # Ana küreyi çiz
+    draw_sphere(
+        ax, center, radius,
+        color=color,
+        alpha=0.75,
+        edgecolor='none'
+    )
+
+    if depth == 0:
+        return  # yaprak düğüm
+
+    # Çocuk küreler: dışa doğru
+    child_radius = radius * scale_factor
+    directions = get_icosahedron_vertices()[:num_children]
+    distance = radius + child_radius  # dışa temas
+
+    for d in directions:
+        child_center = np.array(center) + distance * d
+        draw_kececi_external_fractal_3d(
+            ax,
+            center=tuple(child_center),
+            radius=child_radius,
+            depth=depth - 1,
+            num_children=num_children,
+            scale_factor=scale_factor,
+            min_radius=min_radius,
+            current_depth=current_depth + 1
+        )
+
+def draw_kececi_external_fractal_3d(
+    ax,
+    center=(0, 0, 0),
+    radius=1.0,
+    depth=3,
+    num_children=8,
+    scale_factor=0.45,
+    min_radius=0.02,
+    current_depth=0
+):
+    """
+    🌀 Keçeci External Fractal (3D)
+    - Küreler dışa doğru büyür.
+    - Her seviye belirgin renkle gösterilir.
+    - Fiziksel olarak tutarlı (katı cisimler çarpışmaz).
+    """
+    if depth < 0 or radius < min_radius:
+        return
+
+    color = HIGH_CONTRAST_COLORS[current_depth % len(HIGH_CONTRAST_COLORS)]
+
+    # Ana küreyi çiz
+    draw_sphere(
+        ax, center, radius,
+        color=color,
+        alpha=0.75,
+        edgecolor='none'
+    )
+
+    if depth == 0:
+        return  # yaprak düğüm
+
+    # Çocuk küreler: dışa doğru
+    child_radius = radius * scale_factor
+    directions = get_icosahedron_vertices()[:num_children]
+    distance = radius + child_radius  # dışa temas
+
+    for d in directions:
+        child_center = np.array(center) + distance * d
+        draw_kececi_external_fractal_3d(
+            ax,
+            center=tuple(child_center),
+            radius=child_radius,
+            depth=depth - 1,
+            num_children=num_children,
+            scale_factor=scale_factor,
+            min_radius=min_radius,
+            current_depth=current_depth + 1
+        )
+
 # ==============================================================================
-# ÖRNEK KULLANIM FONKSİYONLARI (isteğe bağlı) - DÜZELTİLMİŞ
+# ÖRNEK KULLANIM FONKSİYONLARI (isteğe bağlı)
 # ==============================================================================
 def example_multiple_fractals():
     """

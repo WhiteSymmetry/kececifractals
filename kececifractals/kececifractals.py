@@ -40,6 +40,15 @@ except ImportError:
                     pos[node] = (i * primary_spacing, i * secondary_spacing)
             return pos
 
+HIGH_CONTRAST_COLORS = [
+    (1.0, 1.0, 1.0),   # Camgöbeği
+    (1.0, 0.0, 1.0),   # Magenta
+    (1.0, 1.0, 0.0),   # Sarı
+    (0.0, 1.0, 0.0),   # Yeşil
+    (1.0, 0.0, 0.0),   # Kırmızı
+    (0.0, 0.0, 1.0),   # Mavi
+    (1.0, 0.5, 0.0),   # Turuncu
+]
 
 class KececiFractalError(Exception):
     """Keçeci Fractals için temel exception."""
@@ -1714,7 +1723,6 @@ def generate_fractal_directly(ax, config: dict):
     ax.set_zlim([-max_extent, max_extent])
     ax.view_init(elev=25, azim=45)
 
-
 def generate_simple_3d_fractal(
     ax,
     num_children: int = 6,
@@ -1914,12 +1922,116 @@ def generate_simple_3d_fractal(
         ax.set_yticks([])
         ax.set_zticks([])
 
+def draw_kececi_internal_fractal_3d(
+    ax,
+    center=(0, 0, 0),
+    radius=1.0,
+    depth=3,
+    num_children=8,
+    scale_factor=0.4,
+    min_radius=0.02,
+    current_depth=0
+):
+    """
+    🌀 3D Keçeci Internal Fractal – Belirgin Renk Ayrımı ile
+    
+    Çocuk küreler, ebeveyn kürenin İÇ yüzeyine teğet olacak şekilde yerleştirilir.
+    Her seviye sabit, kontrastlı bir renkle gösterilir.
+    """
+    if depth < 0 or radius < min_radius:
+        return
+
+    # Sabit, belirgin renk paleti (derinliğe göre)
+    color_palette = [
+        (0.9, 0.2, 0.2),   # depth 0: kırmızı (merkez)
+        (0.9, 0.6, 0.2),   # depth 1: turuncu
+        (0.9, 0.9, 0.2),   # depth 2: sarı
+        (0.2, 0.9, 0.4),   # depth 3: yeşil
+        (0.0, 0.8, 0.9),   # depth 4: turkuaz
+        (0.3, 0.3, 0.9),   # depth 5: mavi
+        (0.6, 0.2, 0.8),   # depth 6: mor
+    ]
+    color = color_palette[current_depth % len(color_palette)]
+
+    # Ana küreyi çiz
+    draw_sphere(
+        ax,
+        center=center,
+        radius=radius,
+        color=color,
+        alpha=0.7 + 0.05 * current_depth,  # iç katmanlar daha az saydam
+        edgecolor='none'
+    )
+
+    if depth == 0:
+        return
+
+    # Çocuk küreler: ebeveynin İÇİNE, iç yüzeye teğet
+    child_radius = radius * scale_factor
+    directions = get_icosahedron_vertices()[:num_children]
+    # Merkezden mesafe = R_ebeveyn - R_çocuk → iç teğet
+    distance_from_center = radius - child_radius
+
+    for d in directions:
+        child_center = np.array(center) + distance_from_center * d
+        draw_kececi_internal_fractal_3d(
+            ax,
+            center=tuple(child_center),
+            radius=child_radius,
+            depth=depth - 1,
+            num_children=num_children,
+            scale_factor=scale_factor,
+            min_radius=min_radius,
+            current_depth=current_depth + 1
+        )
+
+def draw_kececi_internal_fractal_3d(
+    ax,
+    center=(0, 0, 0),
+    radius=1.0,
+    depth=3,
+    num_children=8,
+    scale_factor=0.4,
+    min_radius=0.02,
+    current_depth=0
+):
+    if depth < 0 or radius < min_radius:
+        return
+
+    color = HIGH_CONTRAST_COLORS[current_depth % len(HIGH_CONTRAST_COLORS)]
+
+    draw_sphere(
+        ax,
+        center=center,
+        radius=radius,
+        color=color,
+        alpha=0.30,
+        edgecolor='none'
+    )
+
+    if depth == 0:
+        return
+
+    child_radius = radius * scale_factor
+    directions = get_icosahedron_vertices()[:num_children]
+    distance_from_center = radius - child_radius
+
+    for d in directions:
+        child_center = np.array(center) + distance_from_center * d
+        draw_kececi_internal_fractal_3d(
+            ax,
+            center=tuple(child_center),
+            radius=child_radius,
+            depth=depth - 1,
+            num_children=num_children,
+            scale_factor=scale_factor,
+            min_radius=min_radius,
+            current_depth=current_depth + 1
+        )
 
 # ==============================================================================
 # ÖRNEK KULLANIM FONKSİYONLARI (isteğe bağlı) - DÜZELTİLMİŞ
 # ==============================================================================
-
-
 def example_multiple_fractals():
     """
     Çoklu fraktal karşılaştırması örneği.

@@ -104,15 +104,16 @@ conda install bilgi::kececifractals -y
 
 pip install kececifractals
 ```
+
 https://anaconda.org/bilgi/kececifractals
 
 https://pypi.org/project/kececifractals/
 
 https://github.com/WhiteSymmetry/kececifractals
 
-https://zenodo.org/records/
+[https://zenodo.org/records/](https://doi.org/10.5281/zenodo.15392518)
 
-https://zenodo.org/records/
+https://prefix.dev/channels/bilgi/packages/kececifractals
 
 ---
 
@@ -190,10 +191,10 @@ importlib.reload(kf)
 print("Module reloaded. Now you can run the commands again with the updated code.")
 kf.kececifractals_circle(output_mode='show', text="Keçeci Circle Fractal: Keçeci Dairesel Fraktalı")
 ```
+
 ---
 
 
----
 ![Keçeci Fractals Example](https://github.com/WhiteSymmetry/kececifractals/blob/main/examples/kf-1.png?raw=true)
 
 ![Keçeci Fractals Example](https://github.com/WhiteSymmetry/kececifractals/blob/main/examples/kf-2.png?raw=true)
@@ -210,8 +211,6 @@ kf.kececifractals_circle(output_mode='show', text="Keçeci Circle Fractal: Keçe
 
 ---
 
-
----
 
 ## License / Lisans
 
@@ -252,6 +251,10 @@ If this library was useful to you in your research, please cite us. Following th
 ### APA
 
 ```
+Keçeci, M. (2026). Keçeci Fraktalları ile Dalga Saçılmasının Modellenmesi. Zenodo. https://doi.org/10.5281/zenodo.18359915
+
+Keçeci, M. (2026, Ocak 24). Keçeci Fraktalları ile Dalga Saçılmasının Modellenmesi. Zenodo. https://doi.org/10.5281/zenodo.18359915
+
 Keçeci, M. (2025). Scalable Complexity in Fractal Geometry: The Keçeci Fractal Approach. Authorea. June, 2025. https://doi.org/10.22541/au.175131225.56823239/v1
 
 Keçeci, M. (2025). Keçeci Fractals. Open Work Flow Articles (OWFAs), WorkflowHub https://doi.org/10.48546/workflowhub.document.32.2
@@ -261,7 +264,6 @@ Keçeci, M. (2025, May 13). Scalable complexity: Mathematical analysis and poten
 Keçeci, M. (2025). kececifractals [Data set]. Open Work Flow Articles (OWFAs), WorkflowHub https://doi.org/10.48546/workflowhub.datafile.16.3
 
 Keçeci, M. (2025, May 13). Kececifractals. Open Science Articles (OSAs), Zenodo. https://doi.org/10.5281/zenodo.15392518
-
 
 ```
 

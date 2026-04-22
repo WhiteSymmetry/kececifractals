@@ -41,7 +41,7 @@ test = [
 dev = [{include-group = "test"}]
 test = ["pytest"]
 build = [
-    "setuptools (>=80.10.1)",
+    "setuptools (>=82.0.1)",
     "cython (>=3.2.4)"
 ]
 

@@ -1,11 +1,11 @@
 # __init__.py
 """
+Keçeci Fractals: Keçeci Fraktalları (Keçeci Circle Fractal (KCF): Keçeci Dairesel Fraktalı (KDF), Keçeci-style circle fractal)
 Keçeci Fractals - 2D ve 3D Fraktal Oluşturma Kütüphanesi
 
 Bu kütüphane, Keçeci fraktallarını oluşturmak için kapsamlı bir araç seti sağlar.
 2D dairesel fraktallar, kuantum hata düzeltme görselleştirmeleri ve 3D fraktallar içerir.
 
-Python: 3.11-3.15
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import warnings
 from typing import List, Optional, Tuple, Union, Callable
 
 # Paket sürüm numarası
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 __author__ = "Mehmet Keçeci"
 __email__ = "mkececi@yaani.com"
 __license__ = "AGPL3.0-or-later"

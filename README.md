@@ -1,7 +1,7 @@
 
-# Keçeci Fractals: Keçeci Fraktals
+# Keçeci Fractals: Keçeci Fraktalları (Keçeci Circle Fractal (KCF): Keçeci Dairesel Fraktalı (KDF), Keçeci-style circle fractal)
 
-Keçeci Circle Fractal: Keçeci-style circle fractal.
+## Keçeci Fractals: Keçeci Fraktalları <img src="https://github.com/WhiteSymmetry/kececifractals/blob/main/docs/logo.jpg" alt="Keçeci Fractals: Keçeci Fraktalları" align="right" height="140"/>
 
 [![PyPI version](https://badge.fury.io/py/kececifractals.svg)](https://badge.fury.io/py/kececifractals)
 [![License: AGPL](https://img.shields.io/badge/License-AGPL-yellow.svg)](https://opensource.org/licenses/AGPL)

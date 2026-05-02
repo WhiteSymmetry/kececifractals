@@ -1,5 +1,6 @@
 # kececifractals.py
 """
+Keçeci Fractals: Keçeci Fraktalları (Keçeci Circle Fractal (KCF): Keçeci Dairesel Fraktalı (KDF), Keçeci-style circle fractal)
 This module provides three primary functionalities for generating Keçeci Fractals:
 1.  kececifractals_circle(): Generates general-purpose, aesthetic, and randomly
     colored circular fractals.

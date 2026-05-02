@@ -1,36 +1,75 @@
-name: Publish to Zenodo on Release
+name: Zenodo-Publish New Version to Zenodo on Release
 
 on:
   release:
     types: [published]
 
+runs:
+  using: 'node24'
+  main: 'main.js'
+
 jobs:
   publish-to-zenodo:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
       - name: Create release archive
         run: |
-          mkdir -p release-artifact
-          cp -r ./* release-artifact/
-          cd release-artifact
-          zip -r ../release.zip *
+          # Daha temiz bir arşiv oluştur
+          zip -r release.zip . \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x "*.pyc" \
+            -x "__pycache__/*" \
+            -x ".DS_Store" \
+            -x "*.egg-info/*" \
+            -x "dist/*" \
+            -x "build/*"
 
-      - name: Upload to Zenodo
-        uses: nasa/gh-action-upload-zenodo-release@main
-        with:
-          zenodo_token: ${{ secrets.ZENODO_TOKEN }}
-          dir: .
-          metadata: |
-            {
-              "title": "kececifractals",
+      - name: Upload to Zenodo using API
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+          ZENODO_DEPOSITION_ID: ${{ secrets.ZENODO_DEPOSITION_ID }}
+        run: |
+          # Zenodo API'sini doğrudan kullan
+          echo "Uploading to Zenodo..."
+          
+          # 1. Mevcut deposition'ı al
+          response=$(curl -s -H "Authorization: Bearer $ZENODO_TOKEN" \
+            "https://zenodo.org/api/deposit/depositions/$ZENODO_DEPOSITION_ID")
+          
+          # 2. Yeni versiyon oluştur
+          new_deposition=$(curl -s -X POST -H "Authorization: Bearer $ZENODO_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://zenodo.org/api/deposit/depositions/$ZENODO_DEPOSITION_ID/actions/newversion")
+          
+          # 3. Yeni deposition ID'sini al
+          new_deposition_id=$(echo $new_deposition | jq -r '.id')
+          echo "New deposition ID: $new_deposition_id"
+          
+          # 4. Dosyayı yükle
+          curl -X POST -H "Authorization: Bearer $ZENODO_TOKEN" \
+            -F "file=@release.zip" \
+            "https://zenodo.org/api/deposit/depositions/$new_deposition_id/files"
+          
+          # 5. Metadata güncelle (opsiyonel)
+          metadata='{
+            "metadata": {
+              "title": "'"${{ github.event.repository.name }}"'",
+              "version": "'"${{ github.event.release.tag_name }}"'",
+              "description": "'"${{ github.event.release.body }}"'",
               "upload_type": "software",
-              "description": "Keçeci Fractals: Keçeci-style circle fractal.",
-              "creators": [
-                {"name": "Keçeci, Mehmet", "orcid": "0000-0001-9937-9839"}
-              ],
-              "access_right": "open",
-              "license": "mit-license"
+              "publication_date": "'"$(date -u +%Y-%m-%d)"'"
             }
+          }'
+          
+          curl -X PUT -H "Authorization: Bearer $ZENODO_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$metadata" \
+            "https://zenodo.org/api/deposit/depositions/$new_deposition_id"
+          
+          # 6. Yayınla
+          curl -X POST -H "Authorization: Bearer $ZENODO_TOKEN" \
+            "https://zenodo.org/api/deposit/depositions/$new_deposition_id/actions/publish"

@@ -7,10 +7,17 @@ This module provides three primary functionalities for generating Keçeci Fracta
 2.  visualize_qec_fractal(): Generates fractals customized for modeling the
     concept of Quantum Error Correction (QEC) codes.
 3.  kececifractals_3d(): Generates 3D versions of Keçeci fractals.
+
+* 0.2.4: GPU support
+
 """
 
 import math
 import os
+# Linux için gerekirse bunları açabilirsin
+# os.environ["RUSTICL_ENABLE"] = "radeonsi"
+# os.environ["OCL_ICD_VENDORS"] = "/etc/OpenCL/vendors"
+import pyopencl as cl # pip install -U pyopencl
 import random
 import sys
 import warnings
@@ -40,6 +47,16 @@ except ImportError:
                 else:
                     pos[node] = (i * primary_spacing, i * secondary_spacing)
             return pos
+
+def select_opencl_platform(prefer_rusticl=True):
+    platforms = cl.get_platforms()
+    if not platforms:
+        raise RuntimeError("Hiçbir OpenCL platformu bulunamadı.")
+    if prefer_rusticl:
+        for plat in platforms:
+            if "rusticl" in plat.name.lower():
+                return plat
+    return platforms[0]
 
 HIGH_CONTRAST_COLORS = [
     (1.0, 1.0, 1.0),   # Camgöbeği
@@ -2353,6 +2370,242 @@ def example_simple_fractal():
         print(f"Basit fraktal örneği oluşturulurken hata: {e}")
         return None
 
+def select_opencl_platform(prefer_rusticl=True):
+    platforms = cl.get_platforms()
+    if not platforms:
+        raise RuntimeError("Hiçbir OpenCL platformu bulunamadı.")
+    if prefer_rusticl:
+        for plat in platforms:
+            if "rusticl" in plat.name.lower():
+                return plat
+    return platforms[0]
+
+class KececiFractalGPU:
+    def __init__(self, prefer_rusticl=True):
+        """ Bütün işletim sistemleri için ortaktır"""
+        platform = select_opencl_platform(prefer_rusticl)
+        self.device = platform.get_devices()[0]
+        self.ctx = cl.Context([self.device])
+        self.queue = cl.CommandQueue(self.ctx)
+        self._compile_kernel()
+
+    """
+    def __init__(self, platform_name="rusticl"):
+        #Sadece Linux için
+        platform = next(p for p in cl.get_platforms() if p.name.lower().startswith(platform_name))
+        self.device = platform.get_devices()[0]
+        self.ctx = cl.Context([self.device])
+        self.queue = cl.CommandQueue(self.ctx)
+        self._compile_kernel()
+    """
+
+    def _compile_kernel(self):
+        kernel_src = """
+        typedef struct {
+            float cx, cy, r;
+            float r_col, g_col, b_col;
+        } Circle;
+
+        __kernel void circle_fractal(
+            __global float* output,
+            const int width, const int height,
+            __global const Circle* circles,
+            const int num_circles,
+            const float limit)
+        {
+            int px = get_global_id(0);
+            int py = get_global_id(1);
+            if (px >= width || py >= height) return;
+
+            float x = -limit + 2.0f * limit * px / (float)(width - 1);
+            float y = -limit + 2.0f * limit * py / (float)(height - 1);
+
+            int best_idx = -1;
+            float best_r = 1e9f;
+            for (int i = 0; i < num_circles; i++) {
+                Circle c = circles[i];
+                float dx = x - c.cx;
+                float dy = y - c.cy;
+                if (dx*dx + dy*dy <= c.r * c.r) {
+                    if (c.r < best_r) {
+                        best_r = c.r;
+                        best_idx = i;
+                    }
+                }
+            }
+
+            int idx = (py * width + px) * 3;
+            if (best_idx >= 0) {
+                Circle c = circles[best_idx];
+                output[idx]   = c.r_col;
+                output[idx+1] = c.g_col;
+                output[idx+2] = c.b_col;
+            } else {
+                output[idx] = 0.0f; output[idx+1] = 0.0f; output[idx+2] = 0.0f;
+            }
+        }
+        """
+        self.prg = cl.Program(self.ctx, kernel_src).build()
+        self.knl = self.prg.circle_fractal
+
+    def generate_circles_with_colors(self, base_radius, scale_factor,
+                                     initial_children, recursive_children,
+                                     max_level, min_size_factor, main_color):
+        circles = []
+        min_r = base_radius * min_size_factor
+
+        def add_circle(cx, cy, r, color):
+            circles.append((cx, cy, r, color[0], color[1], color[2]))
+
+        add_circle(0.0, 0.0, base_radius, main_color)
+
+        def recurse(cx, cy, radius, level):
+            if level > max_level:
+                return
+            child_radius = radius * scale_factor
+            if child_radius < min_r:
+                return
+            distance = radius - child_radius
+            n = initial_children if level == 1 else recursive_children
+            for i in range(n):
+                angle = 2 * np.pi * i / n
+                ix = cx + distance * np.cos(angle)
+                iy = cy + distance * np.sin(angle)
+                child_color = random_soft_color()
+                add_circle(ix, iy, child_radius, child_color)
+                recurse(ix, iy, child_radius, level + 1)
+
+        if max_level >= 1:
+            recurse(0.0, 0.0, base_radius, 1)
+        return circles
+
+    def render_gpu(self, circles, width, height, limit):
+        circles_arr = np.array(circles, dtype=np.float32)
+        circles_buf = cl.Buffer(self.ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                                hostbuf=circles_arr)
+        output = np.zeros((height, width, 3), dtype=np.float32)
+        out_buf = cl.Buffer(self.ctx, cl.mem_flags.WRITE_ONLY, output.nbytes)
+
+        self.knl(self.queue, (width, height), None,
+                 out_buf,
+                 np.int32(width), np.int32(height),
+                 circles_buf,
+                 np.int32(len(circles)),
+                 np.float32(limit))
+        cl.enqueue_copy(self.queue, output, out_buf).wait()
+        return output
+
+    def kececifractals_circle_gpu(self,
+                              initial_children: int = 3,
+                              recursive_children: int = 3,
+                              text: str = "Keçeci Fractals",
+                              font_size: int = 14,
+                              font_color: str = "black",
+                              font_style: str = "bold",
+                              font_family: str = "Arial",
+                              max_level: int = 4,
+                              min_size_factor: float = 0.001,
+                              scale_factor: float = 0.5,
+                              base_radius: float = 12.0,
+                              background_color=None,
+                              initial_circle_color=None,
+                              output_mode: str = "show",
+                              filename: str = "kececi_fractal_circle_gpu",
+                              dpi: int = 300,
+                              width: int = 1024,
+                              height: int = 1024,
+                              view_limit: float = None):   # <-- YENİ
+        if not isinstance(max_level, int) or max_level < 0:
+            print("Error: max_level must be a non-negative integer.", file=sys.stderr)
+            return
+        if not (0 < scale_factor < 1):
+            print("Error: scale_factor must be between 0 and 1.", file=sys.stderr)
+            return
+
+        # Ana daire rengi
+        from matplotlib.colors import to_rgb
+        if initial_circle_color is not None:
+            main_color = to_rgb(initial_circle_color) if isinstance(initial_circle_color, str) else initial_circle_color
+        else:
+            main_color = random_soft_color()
+    
+        # Daireleri oluştur
+        circles = self.generate_circles_with_colors(
+            base_radius, scale_factor, initial_children, recursive_children,
+            max_level, min_size_factor, main_color
+        )
+    
+        # --- LİMİT HESAPLAMA ---
+        if view_limit is not None:
+            limit = view_limit
+        else:
+            limit = base_radius + 1.0
+            if text and isinstance(text, str) and len(text) > 0:
+                text_radius = base_radius + 0.8
+                limit = max(limit, text_radius + font_size * 0.1)
+            if circles:
+                circles_arr = np.array(circles, dtype=np.float32)
+                max_ext = circles_arr[:, 0:2].max() + circles_arr[:, 2].max()
+                limit = max(limit, max_ext * 1.05)
+    
+        img = self.render_gpu(circles, width, height, limit)
+
+        # Arka plan rengini uygula
+        if background_color:
+            bg_rgb = to_rgb(background_color) if isinstance(background_color, str) else background_color
+            mask = (img[:,:,0] == 0) & (img[:,:,1] == 0) & (img[:,:,2] == 0)
+            img[mask] = bg_rgb
+
+        # Çizim
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.imshow(img, extent=[-limit, limit, -limit, limit], origin='lower')
+        ax.set_xlim(-limit, limit)
+        ax.set_ylim(-limit, limit)
+        ax.set_aspect('equal')
+        ax.axis('off')
+
+        # Metin
+        if text and isinstance(text, str) and len(text) > 0:
+            text_radius = base_radius + 0.8
+            fc = to_rgb(font_color) if isinstance(font_color, str) else (0,0,0)
+            for i, char in enumerate(text):
+                angle_deg = (360 / len(text) * i) - 90
+                angle_rad = np.deg2rad(angle_deg)
+                x_text = text_radius * np.cos(angle_rad)
+                y_text = text_radius * np.sin(angle_rad)
+                ax.text(x_text, y_text, char,
+                        fontsize=font_size, ha="center", va="center",
+                        color=fc, fontweight=font_style, fontfamily=font_family,
+                        rotation=angle_deg + 90)
+
+        plot_title = f"Keçeci Fractals GPU ({text})" if text else "Keçeci Circle Fractal GPU"
+        plt.title(plot_title, fontsize=16)
+
+        output_mode = output_mode.lower().strip()
+        if output_mode == "show":
+            plt.show()
+        elif output_mode in ["png", "jpg", "jpeg", "svg"]:
+            output_filename = f"{filename}.{output_mode}"
+            plt.savefig(output_filename, dpi=dpi, bbox_inches='tight')
+            print(f"Fractal saved to: {output_filename}")
+            plt.close()
+        else:
+            print(f"Invalid output_mode: {output_mode}")
+            plt.close()
+"""
+## Kullanım
+kf_gpu = KececiFractalGPU()
+
+kf_gpu.kececifractals_circle_gpu(
+    text="Keçeci Fractals with GPU",
+    max_level=3,
+    background_color="#9a0a1a",
+    output_mode="show",
+    width=800, height=800,
+    base_radius=12.0,      # büyük ana daire
+    view_limit=14.0         # görüntü sınırını sabitle → daire ekranı doldurur
+)
+"""
 
 # ==============================================================================
 # PART 5: MODULE TESTS

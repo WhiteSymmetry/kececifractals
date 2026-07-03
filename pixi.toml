@@ -21,6 +21,8 @@ hatchling = ">=1.28.0"
 setuptools_scm = ">=9.2.2"
 rattler-build = ">=0.55.0"
 networkx = ">=3.6.1"
+matplotlib = ">=3.11.0"
+numpy = ">=2.4.6"
 
 [tasks]
 build = "python -m build"

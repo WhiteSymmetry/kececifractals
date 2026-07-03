@@ -20,7 +20,7 @@ requirements:
   host:
     - python {{ python }}
     - numpy
-    # Other build tools
+    - pip
   run:
     - python >=3.11
     - numpy

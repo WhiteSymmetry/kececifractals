@@ -24,7 +24,9 @@ requirements:
   run:
     - python >=3.11
     - numpy
-    # Other runtime dependencies
+    - matplotlib
+    - networkx
+    - kececilayout
   build:
     - python >=3.11
     - pip

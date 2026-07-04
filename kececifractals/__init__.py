@@ -13,7 +13,7 @@ import warnings
 from typing import List, Optional, Tuple, Union, Callable
 
 # Paket sürüm numarası
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 __author__ = "Mehmet Keçeci"
 __email__ = "mkececi@yaani.com"
 __license__ = "AGPL3.0-or-later"
@@ -66,6 +66,10 @@ __all__ = [
     "draw_kececi_external_fractal3d",
     "draw_kececi_external_fractal_3d",
     "KececiFractalGPU",
+    "KececiFractalOpenGL",
+    "KececiFractalVulkan",
+    "KececiFractalOpenCL",
+    "KececiFractalAuto",
 ]
 
 try:
@@ -112,6 +116,10 @@ try:
         draw_kececi_external_fractal3d,
         draw_kececi_external_fractal_3d,
         KececiFractalGPU,
+        KececiFractalOpenGL,
+        KececiFractalVulkan,
+        KececiFractalOpenCL,
+        KececiFractalAuto,
     )
 except ImportError as e:
     warnings.warn(f"Gerekli modül yüklenemedi: {e}", ImportWarning)

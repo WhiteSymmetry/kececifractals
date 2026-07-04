@@ -1,6 +1,6 @@
 [project]
 name = "kececifractals"
-version = "0.2.4"
+version = "0.2.5"
 
 # Diğer proje bilgileri (isteğe bağlı ama tavsiye edilir)
 authors = [
@@ -24,6 +24,8 @@ dependencies = [
     "matplotlib",
     "numpy",
     "pyopencl",
+    "PyOpenGL",
+    "vulkan",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +39,8 @@ test = [
     "matplotlib",
     "numpy",
     "pyopencl",
+    "PyOpenGL",
+    "vulkan",
 ]
 
 [dependency-groups]

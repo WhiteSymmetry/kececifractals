@@ -8,27 +8,38 @@ This module provides three primary functionalities for generating Keçeci Fracta
     concept of Quantum Error Correction (QEC) codes.
 3.  kececifractals_3d(): Generates 3D versions of Keçeci fractals.
 
-* 0.2.4: GPU support
+pip install -U kececilayout matplotlib networkx numpy PyOpenGL pyopencl vulkan
+
+* 0.2.5: GPU/OpenCL/OpenGL/Vulkan/Auto support
+* 0.2.4: GPU/OpenCL support
 
 """
 
+import ctypes
 import math
+import matplotlib.pyplot as plt
+from matplotlib.colors import to_rgb
+from matplotlib.patches import Circle
+from mpl_toolkits.mplot3d import Axes3D, art3d
+import networkx as nx  # STRATUM MODEL VISUALIZATION
+import numpy as np
+from OpenGL.EGL import * # pip install -U PyOpenGL
+from OpenGL import GL
+from OpenGL.GL import shaders
 import os
 # Linux için gerekirse bunları açabilirsin
 # os.environ["RUSTICL_ENABLE"] = "radeonsi"
 # os.environ["OCL_ICD_VENDORS"] = "/etc/OpenCL/vendors"
 import pyopencl as cl # pip install -U pyopencl
 import random
+import subprocess
 import sys
+import vulkan as vk # pip install -U vulkan
+from vulkan._vulkan import ffi
+import tempfile
 import warnings
 from typing import Callable, List, Optional, Tuple, Union
 
-import matplotlib.pyplot as plt
-import networkx as nx  # STRATUM MODEL VISUALIZATION
-import numpy as np
-from matplotlib.colors import to_rgb
-from matplotlib.patches import Circle
-from mpl_toolkits.mplot3d import Axes3D, art3d
 
 # Import kececilayout if available, otherwise use a fallback
 try:
@@ -2370,15 +2381,195 @@ def example_simple_fractal():
         print(f"Basit fraktal örneği oluşturulurken hata: {e}")
         return None
 
-def select_opencl_platform(prefer_rusticl=True):
-    platforms = cl.get_platforms()
-    if not platforms:
-        raise RuntimeError("Hiçbir OpenCL platformu bulunamadı.")
-    if prefer_rusticl:
-        for plat in platforms:
-            if "rusticl" in plat.name.lower():
-                return plat
-    return platforms[0]
+class KececiFractalOpenCL:
+    def __init__(self):
+        platform = select_opencl_platform()
+        self.device = platform.get_devices()[0]
+        self.ctx = cl.Context([self.device])
+        self.queue = cl.CommandQueue(self.ctx)
+        self._compile_kernel()
+        self.max_circles = 0
+        self.circles_buf = None
+        self.output_buf = None
+        self.max_output_floats = 0
+
+    def _compile_kernel(self):
+        kernel_src = """
+        typedef struct { float cx, cy, r; float r_col, g_col, b_col; } Circle;
+        __kernel void circle_fractal(
+            __global float* output, const int width, const int height,
+            __global const Circle* circles, const int num_circles, const float limit)
+        {
+            int px = get_global_id(0), py = get_global_id(1);
+            if (px >= width || py >= height) return;
+            float x = -limit + 2.0f * limit * px / (float)(width - 1);
+            float y = -limit + 2.0f * limit * py / (float)(height - 1);
+            int best_idx = -1; float best_r = 1e9f;
+            for (int i = 0; i < num_circles; i++) {
+                Circle c = circles[i];
+                float dx = x - c.cx, dy = y - c.cy;
+                if (dx*dx + dy*dy <= c.r * c.r) {
+                    if (c.r < best_r) { best_r = c.r; best_idx = i; }
+                }
+            }
+            int idx = (py * width + px) * 3;
+            if (best_idx >= 0) {
+                Circle c = circles[best_idx];
+                output[idx] = c.r_col; output[idx+1] = c.g_col; output[idx+2] = c.b_col;
+            } else { output[idx] = 0.0f; output[idx+1]=0.0f; output[idx+2]=0.0f; }
+        }
+        """
+        self.prg = cl.Program(self.ctx, kernel_src).build()
+        self.knl = self.prg.circle_fractal
+
+    def generate_circles_with_colors(self, base_radius, scale_factor,
+                                     initial_children, recursive_children,
+                                     max_level, min_size_factor, main_color):
+        circles = []
+        min_r = base_radius * min_size_factor
+        def add(cx, cy, r, col):
+            circles.append((cx, cy, r, col[0], col[1], col[2]))
+        add(0.0, 0.0, base_radius, main_color)
+        def recurse(cx, cy, r, level):
+            if level > max_level: return
+            cr = r * scale_factor
+            if cr < min_r: return
+            dist = r - cr
+            n = initial_children if level == 1 else recursive_children
+            for i in range(n):
+                ang = 2 * np.pi * i / n
+                ix = cx + dist * np.cos(ang)
+                iy = cy + dist * np.sin(ang)
+                col = random_soft_color() if random_soft_color else (random.uniform(0.4,0.95) for _ in range(3))
+                if not isinstance(col, tuple): col = tuple(col)
+                add(ix, iy, cr, col)
+                recurse(ix, iy, cr, level+1)
+        if max_level >= 1: recurse(0.0, 0.0, base_radius, 1)
+        return circles
+
+    def render_gpu(self, circles, width, height, limit):
+        num_circles = len(circles)
+        output_floats = width * height * 3
+        # buffer yönetimi
+        if self.circles_buf is None or num_circles > self.max_circles:
+            if self.circles_buf: del self.circles_buf
+            self.max_circles = max(num_circles, 1024)
+            self.circles_buf = cl.Buffer(self.ctx, cl.mem_flags.READ_WRITE, self.max_circles * 6 * 4)
+        if self.output_buf is None or output_floats > self.max_output_floats:
+            if self.output_buf: del self.output_buf
+            self.max_output_floats = output_floats
+            self.output_buf = cl.Buffer(self.ctx, cl.mem_flags.READ_WRITE, output_floats * 4)
+
+        circles_arr = np.array(circles, dtype=np.float32).flatten()
+        cl.enqueue_copy(self.queue, self.circles_buf, circles_arr).wait()
+
+        self.knl(self.queue, (width, height), None,
+                 self.output_buf,
+                 np.int32(width), np.int32(height),
+                 self.circles_buf,
+                 np.int32(num_circles),
+                 np.float32(limit))
+        output = np.zeros((height, width, 3), dtype=np.float32)
+        cl.enqueue_copy(self.queue, output, self.output_buf).wait()
+        return output
+
+    def kececifractals_circle_gpu(self,
+                              initial_children: int = 3,
+                              recursive_children: int = 3,
+                              text: str = "Keçeci Fractals",
+                              font_size: int = 14,
+                              font_color: str = "black",
+                              font_style: str = "bold",
+                              font_family: str = "Arial",
+                              max_level: int = 4,
+                              min_size_factor: float = 0.001,
+                              scale_factor: float = 0.5,
+                              base_radius: float = 12.0,
+                              background_color=None,
+                              initial_circle_color=None,
+                              output_mode: str = "show",
+                              filename: str = "kececi_fractal_circle_gpu",
+                              dpi: int = 300,
+                              width: int = 1024,
+                              height: int = 1024,
+                              view_limit: float = None):   # <-- YENİ
+        if not isinstance(max_level, int) or max_level < 0:
+            print("Error: max_level must be a non-negative integer.", file=sys.stderr)
+            return
+        if not (0 < scale_factor < 1):
+            print("Error: scale_factor must be between 0 and 1.", file=sys.stderr)
+            return
+
+        # Ana daire rengi
+        from matplotlib.colors import to_rgb
+        if initial_circle_color is not None:
+            main_color = to_rgb(initial_circle_color) if isinstance(initial_circle_color, str) else initial_circle_color
+        else:
+            main_color = random_soft_color()
+    
+        # Daireleri oluştur
+        circles = self.generate_circles_with_colors(
+            base_radius, scale_factor, initial_children, recursive_children,
+            max_level, min_size_factor, main_color
+        )
+    
+        # --- LİMİT HESAPLAMA ---
+        if view_limit is not None:
+            limit = view_limit
+        else:
+            limit = base_radius + 1.0
+            if text and isinstance(text, str) and len(text) > 0:
+                text_radius = base_radius + 0.8
+                limit = max(limit, text_radius + font_size * 0.1)
+            if circles:
+                circles_arr = np.array(circles, dtype=np.float32)
+                max_ext = circles_arr[:, 0:2].max() + circles_arr[:, 2].max()
+                limit = max(limit, max_ext * 1.05)
+    
+        img = self.render_gpu(circles, width, height, limit)
+
+        # Arka plan rengini uygula
+        if background_color:
+            bg_rgb = to_rgb(background_color) if isinstance(background_color, str) else background_color
+            mask = (img[:,:,0] == 0) & (img[:,:,1] == 0) & (img[:,:,2] == 0)
+            img[mask] = bg_rgb
+
+        # Çizim
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.imshow(img, extent=[-limit, limit, -limit, limit], origin='lower')
+        ax.set_xlim(-limit, limit)
+        ax.set_ylim(-limit, limit)
+        ax.set_aspect('equal')
+        ax.axis('off')
+
+        # Metin
+        if text and isinstance(text, str) and len(text) > 0:
+            text_radius = base_radius + 0.8
+            fc = to_rgb(font_color) if isinstance(font_color, str) else (0,0,0)
+            for i, char in enumerate(text):
+                angle_deg = (360 / len(text) * i) - 90
+                angle_rad = np.deg2rad(angle_deg)
+                x_text = text_radius * np.cos(angle_rad)
+                y_text = text_radius * np.sin(angle_rad)
+                ax.text(x_text, y_text, char,
+                        fontsize=font_size, ha="center", va="center",
+                        color=fc, fontweight=font_style, fontfamily=font_family,
+                        rotation=angle_deg + 90)
+
+        plot_title = f"Keçeci Fractals GPU ({text})" if text else "Keçeci Circle Fractal GPU"
+        plt.title(plot_title, fontsize=16)
+
+        output_mode = output_mode.lower().strip()
+        if output_mode == "show":
+            plt.show()
+        elif output_mode in ["png", "jpg", "jpeg", "svg"]:
+            output_filename = f"{filename}.{output_mode}"
+            plt.savefig(output_filename, dpi=dpi, bbox_inches='tight')
+            print(f"Fractal saved to: {output_filename}")
+            plt.close()
+        else:
+            print(f"Invalid output_mode: {output_mode}")
+            plt.close()
 
 class KececiFractalGPU:
     def __init__(self, prefer_rusticl=True):
@@ -2388,6 +2579,10 @@ class KececiFractalGPU:
         self.ctx = cl.Context([self.device])
         self.queue = cl.CommandQueue(self.ctx)
         self._compile_kernel()
+        self.max_circles = 0
+        self.circles_buf = None
+        self.output_buf = None
+        self.max_output_floats = 0
 
     """
     def __init__(self, platform_name="rusticl"):
@@ -2607,6 +2802,877 @@ kf_gpu.kececifractals_circle_gpu(
 )
 """
 
+class KececiFractalOpenGL:
+    def __init__(self):
+        # EGL bağlamını oluştur
+        self._setup_egl()
+        self._compile_shader()
+        self.max_circles = 0
+        self.circles_ssbo = None
+        self.output_ssbo = None
+        self.max_output_size = 0
+
+    def _setup_egl(self):
+        """EGL ile headless OpenGL bağlamı oluşturur."""
+        display = eglGetDisplay(EGL_DEFAULT_DISPLAY)
+        if display == EGL_NO_DISPLAY:
+            raise RuntimeError("EGL display alınamadı.")
+
+        if not eglInitialize(display, None, None):
+            raise RuntimeError("EGL başlatılamadı.")
+
+        if not eglBindAPI(EGL_OPENGL_API):
+            raise RuntimeError("EGL'ye OpenGL API bağlanamadı.")
+
+        # Yapılandırma özellikleri
+        config_attribs = [
+            EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+            EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+            EGL_RED_SIZE, 8,
+            EGL_GREEN_SIZE, 8,
+            EGL_BLUE_SIZE, 8,
+            EGL_ALPHA_SIZE, 8,
+            EGL_DEPTH_SIZE, 24,
+            EGL_STENCIL_SIZE, 8,
+            EGL_NONE
+        ]
+        config_attribs = (ctypes.c_int * len(config_attribs))(*config_attribs)
+        num_configs = ctypes.c_int()
+        configs = (ctypes.c_void_p * 1)()
+
+        if not eglChooseConfig(display, config_attribs, configs, 1, num_configs):
+            raise RuntimeError("EGL yapılandırması seçilemedi.")
+        config = configs[0]
+
+        # PBuffer yüzeyi
+        pbuffer_attribs = [
+            EGL_WIDTH, 1,
+            EGL_HEIGHT, 1,
+            EGL_NONE
+        ]
+        pbuffer_attribs = (ctypes.c_int * len(pbuffer_attribs))(*pbuffer_attribs)
+        surface = eglCreatePbufferSurface(display, config, pbuffer_attribs)
+        if surface == EGL_NO_SURFACE:
+            raise RuntimeError("EGL Pbuffer yüzeyi oluşturulamadı.")
+
+        # Bağlam oluştur
+        context_attribs = [
+            EGL_CONTEXT_MAJOR_VERSION, 4,
+            EGL_CONTEXT_MINOR_VERSION, 3,
+            EGL_NONE
+        ]
+        context_attribs = (ctypes.c_int * len(context_attribs))(*context_attribs)
+        context = eglCreateContext(display, config, EGL_NO_CONTEXT, context_attribs)
+        if context == EGL_NO_CONTEXT:
+            raise RuntimeError("EGL bağlamı oluşturulamadı.")
+
+        # Aktif yap
+        if not eglMakeCurrent(display, surface, surface, context):
+            raise RuntimeError("EGL bağlamı aktif yapılamadı.")
+
+        # Nesne referanslarını sakla
+        self.egl_display = display
+        self.egl_surface = surface
+        self.egl_context = context
+
+    def _compile_shader(self):
+        compute_src = """
+        #version 430
+        layout(local_size_x = 16, local_size_y = 16) in;
+
+        struct Circle {
+            float cx, cy, r;
+            float r_col, g_col, b_col;
+        };
+
+        layout(std430, binding = 0) buffer CircleBuffer {
+            Circle circles[];
+        };
+
+        layout(std430, binding = 1) buffer OutputBuffer {
+            float outBuffer[];
+        };
+
+        uniform int u_width;
+        uniform int u_height;
+        uniform int u_num_circles;
+        uniform float u_limit;
+
+        void main() {
+            uint px = gl_GlobalInvocationID.x;
+            uint py = gl_GlobalInvocationID.y;
+            if (px >= u_width || py >= u_height) return;
+
+            float x = -u_limit + 2.0f * u_limit * float(px) / float(u_width - 1);
+            float y = -u_limit + 2.0f * u_limit * float(py) / float(u_height - 1);
+
+            int best_idx = -1;
+            float best_r = 1e9f;
+            for (int i = 0; i < u_num_circles; i++) {
+                Circle c = circles[i];
+                float dx = x - c.cx;
+                float dy = y - c.cy;
+                if (dx*dx + dy*dy <= c.r * c.r) {
+                    if (c.r < best_r) {
+                        best_r = c.r;
+                        best_idx = i;
+                    }
+                }
+            }
+
+            uint idx = (py * u_width + px) * 3;
+            if (best_idx >= 0) {
+                Circle c = circles[best_idx];
+                outBuffer[idx]   = c.r_col;
+                outBuffer[idx+1] = c.g_col;
+                outBuffer[idx+2] = c.b_col;
+            } else {
+                outBuffer[idx]   = 0.0;
+                outBuffer[idx+1] = 0.0;
+                outBuffer[idx+2] = 0.0;
+            }
+        }
+        """
+        shader = shaders.compileShader(compute_src, GL.GL_COMPUTE_SHADER)
+        self.program = shaders.compileProgram(shader)
+        self.loc_width = GL.glGetUniformLocation(self.program, "u_width")
+        self.loc_height = GL.glGetUniformLocation(self.program, "u_height")
+        self.loc_num = GL.glGetUniformLocation(self.program, "u_num_circles")
+        self.loc_limit = GL.glGetUniformLocation(self.program, "u_limit")
+
+    def _ensure_buffers(self, num_circles, output_floats):
+        if self.circles_ssbo is None or num_circles > self.max_circles:
+            if self.circles_ssbo:
+                GL.glDeleteBuffers(1, [self.circles_ssbo])
+            self.max_circles = max(num_circles, 1024)
+            self.circles_ssbo = GL.glGenBuffers(1)
+            GL.glBindBuffer(GL.GL_SHADER_STORAGE_BUFFER, self.circles_ssbo)
+            GL.glBufferData(GL.GL_SHADER_STORAGE_BUFFER,
+                            self.max_circles * 6 * 4, None, GL.GL_DYNAMIC_DRAW)
+
+        if self.output_ssbo is None or output_floats > self.max_output_size:
+            if self.output_ssbo:
+                GL.glDeleteBuffers(1, [self.output_ssbo])
+            self.max_output_size = output_floats
+            self.output_ssbo = GL.glGenBuffers(1)
+            GL.glBindBuffer(GL.GL_SHADER_STORAGE_BUFFER, self.output_ssbo)
+            GL.glBufferData(GL.GL_SHADER_STORAGE_BUFFER,
+                            output_floats * 4, None, GL.GL_DYNAMIC_READ)
+
+    def generate_circles_with_colors(self, base_radius, scale_factor,
+                                     initial_children, recursive_children,
+                                     max_level, min_size_factor, main_color):
+        circles = []
+        min_r = base_radius * min_size_factor
+
+        def add_circle(cx, cy, r, color):
+            circles.append((cx, cy, r, color[0], color[1], color[2]))
+
+        add_circle(0.0, 0.0, base_radius, main_color)
+
+        def recurse(cx, cy, radius, level):
+            if level > max_level:
+                return
+            child_radius = radius * scale_factor
+            if child_radius < min_r:
+                return
+            distance = radius - child_radius
+            n = initial_children if level == 1 else recursive_children
+            for i in range(n):
+                angle = 2 * np.pi * i / n
+                ix = cx + distance * np.cos(angle)
+                iy = cy + distance * np.sin(angle)
+                child_color = random_soft_color()
+                add_circle(ix, iy, child_radius, child_color)
+                recurse(ix, iy, child_radius, level + 1)
+
+        if max_level >= 1:
+            recurse(0.0, 0.0, base_radius, 1)
+        return circles
+
+    def render_opengl(self, circles, width, height, limit):
+        num_circles = len(circles)
+        output_floats = width * height * 3
+        self._ensure_buffers(num_circles, output_floats)
+
+        circles_arr = np.array(circles, dtype=np.float32).flatten()
+        GL.glBindBuffer(GL.GL_SHADER_STORAGE_BUFFER, self.circles_ssbo)
+        GL.glBufferSubData(GL.GL_SHADER_STORAGE_BUFFER, 0, circles_arr.nbytes, circles_arr)
+
+        GL.glUseProgram(self.program)
+        GL.glUniform1i(self.loc_width, width)
+        GL.glUniform1i(self.loc_height, height)
+        GL.glUniform1i(self.loc_num, num_circles)
+        GL.glUniform1f(self.loc_limit, limit)
+
+        GL.glBindBufferBase(GL.GL_SHADER_STORAGE_BUFFER, 0, self.circles_ssbo)
+        GL.glBindBufferBase(GL.GL_SHADER_STORAGE_BUFFER, 1, self.output_ssbo)
+
+        gx = (width + 15) // 16
+        gy = (height + 15) // 16
+        GL.glDispatchCompute(gx, gy, 1)
+        GL.glMemoryBarrier(GL.GL_SHADER_STORAGE_BARRIER_BIT)
+        GL.glFinish()
+
+        GL.glBindBuffer(GL.GL_SHADER_STORAGE_BUFFER, self.output_ssbo)
+        output_raw = GL.glGetBufferSubData(GL.GL_SHADER_STORAGE_BUFFER, 0, output_floats * 4)
+        output = np.frombuffer(output_raw, dtype=np.float32).reshape((height, width, 3))
+        return output
+
+    def kececifractals_circle_opengl(self,
+                                     initial_children: int = 4,
+                                     recursive_children: int = 4,
+                                     text: str = "Keçeci Fractals",
+                                     font_size: int = 14,
+                                     font_color: str = "black",
+                                     font_style: str = "bold",
+                                     font_family: str = "Arial",
+                                     max_level: int = 4,
+                                     min_size_factor: float = 0.001,
+                                     scale_factor: float = 0.5,
+                                     base_radius: float = 12.0,
+                                     background_color=None,
+                                     initial_circle_color=None,
+                                     output_mode: str = "show",
+                                     filename: str = "kececi_fractal_circle_opengl",
+                                     dpi: int = 300,
+                                     width: int = 1024,
+                                     height: int = 1024,
+                                     view_limit: float = None):
+        if not isinstance(max_level, int) or max_level < 0:
+            print("Error: max_level must be a non-negative integer.", file=sys.stderr)
+            return
+        if not (0 < scale_factor < 1):
+            print("Error: scale_factor must be between 0 and 1.", file=sys.stderr)
+            return
+
+        from matplotlib.colors import to_rgb
+        if initial_circle_color is not None:
+            main_color = to_rgb(initial_circle_color) if isinstance(initial_circle_color, str) else initial_circle_color
+        else:
+            main_color = random_soft_color()
+
+        circles = self.generate_circles_with_colors(
+            base_radius, scale_factor, initial_children, recursive_children,
+            max_level, min_size_factor, main_color
+        )
+
+        if view_limit is not None:
+            limit = view_limit
+        else:
+            limit = base_radius + 1.0
+            if text and isinstance(text, str) and len(text) > 0:
+                text_radius = base_radius + 0.8
+                limit = max(limit, text_radius + font_size * 0.1)
+            if circles:
+                circles_arr = np.array(circles, dtype=np.float32)
+                max_ext = circles_arr[:, 0:2].max() + circles_arr[:, 2].max()
+                limit = max(limit, max_ext * 1.05)
+
+        img = self.render_opengl(circles, width, height, limit)
+
+        if background_color:
+            bg_rgb = to_rgb(background_color) if isinstance(background_color, str) else background_color
+            mask = (img[:,:,0] == 0) & (img[:,:,1] == 0) & (img[:,:,2] == 0)
+            img[mask] = bg_rgb
+
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.imshow(img, extent=[-limit, limit, -limit, limit], origin='lower')
+        ax.set_xlim(-limit, limit)
+        ax.set_ylim(-limit, limit)
+        ax.set_aspect('equal')
+        ax.axis('off')
+
+        if text and isinstance(text, str) and len(text) > 0:
+            text_radius = base_radius + 0.8
+            fc = to_rgb(font_color) if isinstance(font_color, str) else (0,0,0)
+            for i, char in enumerate(text):
+                angle_deg = (360 / len(text) * i) - 90
+                angle_rad = np.deg2rad(angle_deg)
+                x_text = text_radius * np.cos(angle_rad)
+                y_text = text_radius * np.sin(angle_rad)
+                ax.text(x_text, y_text, char,
+                        fontsize=font_size, ha="center", va="center",
+                        color=fc, fontweight=font_style, fontfamily=font_family,
+                        rotation=angle_deg + 90)
+
+        plot_title = f"Keçeci Fractals OpenGL ({text})" if text else "Keçeci Circle Fractal OpenGL"
+        plt.title(plot_title, fontsize=16)
+
+        output_mode = output_mode.lower().strip()
+        if output_mode == "show":
+            plt.show()
+        elif output_mode in ["png", "jpg", "jpeg", "svg"]:
+            output_filename = f"{filename}.{output_mode}"
+            plt.savefig(output_filename, dpi=dpi, bbox_inches='tight')
+            print(f"Fractal saved to: {output_filename}")
+            plt.close()
+        else:
+            print(f"Invalid output_mode: {output_mode}")
+            plt.close()
+
+    def __del__(self):
+        if hasattr(self, 'egl_display'):
+            eglDestroyContext(self.egl_display, self.egl_context)
+            eglDestroySurface(self.egl_display, self.egl_surface)
+            eglTerminate(self.egl_display)
+
+"""
+#%matplotlib inline
+
+ogl = KececiFractalOpenGL()
+ogl.kececifractals_circle_opengl(
+    text="OpenGL EGL",
+    max_level=5,
+    background_color="#8a0a1a",
+    output_mode="show",
+    width=800, height=800,
+    base_radius=12.0,
+    view_limit=14.0
+)
+"""
+
+class KececiFractalVulkan:
+    def __init__(self):
+        self._setup_vulkan()
+        self.max_circles = 0
+        self.circles_buf = None
+        self.circles_mem = None
+        self.output_buf = None
+        self.output_mem = None
+        self.max_output_floats = 0
+
+    def _setup_vulkan(self):
+        app_info = vk.VkApplicationInfo(
+            sType=vk.VK_STRUCTURE_TYPE_APPLICATION_INFO,
+            pApplicationName="KececiFractal",
+            applicationVersion=vk.VK_MAKE_VERSION(1,0,0),
+            apiVersion=vk.VK_API_VERSION_1_0,
+        )
+        instance_info = vk.VkInstanceCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            pApplicationInfo=app_info,
+        )
+        self.instance = vk.vkCreateInstance(instance_info, None)
+
+        phys_devices = vk.vkEnumeratePhysicalDevices(self.instance)
+        if not phys_devices:
+            raise RuntimeError("Vulkan uyumlu cihaz bulunamadı.")
+        self.phys_device = phys_devices[0]
+
+        queue_family_index = 0
+        queue_priority = 1.0
+        device_queue_create_info = vk.VkDeviceQueueCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            queueFamilyIndex=queue_family_index,
+            queueCount=1,
+            pQueuePriorities=[queue_priority],
+        )
+        device_create_info = vk.VkDeviceCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            queueCreateInfoCount=1,
+            pQueueCreateInfos=[device_queue_create_info],
+        )
+        self.device = vk.vkCreateDevice(self.phys_device, device_create_info, None)
+        self.queue = vk.vkGetDeviceQueue(self.device, queue_family_index, 0)
+
+        pool_info = vk.VkCommandPoolCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            queueFamilyIndex=queue_family_index,
+        )
+        self.cmd_pool = vk.vkCreateCommandPool(self.device, pool_info, None)
+
+        # Descriptor set layout
+        bindings = [
+            vk.VkDescriptorSetLayoutBinding(
+                binding=0, descriptorType=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                descriptorCount=1, stageFlags=vk.VK_SHADER_STAGE_COMPUTE_BIT,
+            ),
+            vk.VkDescriptorSetLayoutBinding(
+                binding=1, descriptorType=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                descriptorCount=1, stageFlags=vk.VK_SHADER_STAGE_COMPUTE_BIT,
+            ),
+        ]
+        layout_info = vk.VkDescriptorSetLayoutCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            bindingCount=2, pBindings=bindings,
+        )
+        self.desc_set_layout = vk.vkCreateDescriptorSetLayout(self.device, layout_info, None)
+
+        # Push constant: 4 adet int32 (hizalama için hepsi int)
+        push_range = vk.VkPushConstantRange(
+            stageFlags=vk.VK_SHADER_STAGE_COMPUTE_BIT,
+            offset=0,
+            size=16,
+        )
+        pipeline_layout_info = vk.VkPipelineLayoutCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            setLayoutCount=1, pSetLayouts=[self.desc_set_layout],
+            pushConstantRangeCount=1, pPushConstantRanges=[push_range],
+        )
+        self.pipeline_layout = vk.vkCreatePipelineLayout(self.device, pipeline_layout_info, None)
+
+        # Shader – limit'i float olarak alıp int push constant'tan dönüştürüyoruz
+        glsl_src = """
+        #version 450
+        layout(local_size_x = 16, local_size_y = 16) in;
+
+        struct Circle {
+            float cx, cy, r;
+            float r_col, g_col, b_col;
+        };
+
+        layout(std430, binding = 0) buffer CircleBuffer { Circle circles[]; };
+        layout(std430, binding = 1) buffer OutputBuffer { float outBuffer[]; };
+
+        layout(push_constant) uniform PushConstants {
+            int width;
+            int height;
+            int num_circles;
+            int limit_int;         // float yerine int gönderiyoruz
+        } pc;
+
+        void main() {
+            uint px = gl_GlobalInvocationID.x;
+            uint py = gl_GlobalInvocationID.y;
+            if (px >= pc.width || py >= pc.height) return;
+
+            float limit = float(pc.limit_int);
+            float x = -limit + 2.0f * limit * float(px) / float(pc.width - 1);
+            float y = -limit + 2.0f * limit * float(py) / float(pc.height - 1);
+
+            int best_idx = -1;
+            float best_r = 1e9f;
+            for (int i = 0; i < pc.num_circles; i++) {
+                Circle c = circles[i];
+                float dx = x - c.cx;
+                float dy = y - c.cy;
+                if (dx*dx + dy*dy <= c.r * c.r) {
+                    if (c.r < best_r) {
+                        best_r = c.r;
+                        best_idx = i;
+                    }
+                }
+            }
+            uint idx = (py * pc.width + px) * 3;
+            if (best_idx >= 0) {
+                Circle c = circles[best_idx];
+                outBuffer[idx]   = c.r_col;
+                outBuffer[idx+1] = c.g_col;
+                outBuffer[idx+2] = c.b_col;
+            } else {
+                outBuffer[idx]   = 0.0; outBuffer[idx+1]=0.0; outBuffer[idx+2]=0.0;
+            }
+        }
+        """
+        spirv = self._compile_to_spirv(glsl_src)
+        shader_info = vk.VkShaderModuleCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            codeSize=len(spirv), pCode=spirv,
+        )
+        self.shader_module = vk.vkCreateShaderModule(self.device, shader_info, None)
+
+        stage_info = vk.VkPipelineShaderStageCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            stage=vk.VK_SHADER_STAGE_COMPUTE_BIT, module=self.shader_module, pName="main",
+        )
+        pipeline_info = vk.VkComputePipelineCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+            stage=stage_info, layout=self.pipeline_layout,
+        )
+        self.pipeline = vk.vkCreateComputePipelines(
+            self.device, vk.VK_NULL_HANDLE, 1, [pipeline_info], None,
+        )[0]
+
+        # Descriptor pool
+        pool_size = vk.VkDescriptorPoolSize(type=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, descriptorCount=2)
+        pool_info = vk.VkDescriptorPoolCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            maxSets=1, poolSizeCount=1, pPoolSizes=[pool_size],
+        )
+        self.desc_pool = vk.vkCreateDescriptorPool(self.device, pool_info, None)
+
+        alloc_info = vk.VkDescriptorSetAllocateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            descriptorPool=self.desc_pool, descriptorSetCount=1,
+            pSetLayouts=[self.desc_set_layout],
+        )
+        self.desc_set = vk.vkAllocateDescriptorSets(self.device, alloc_info)[0]
+
+    def _compile_to_spirv(self, glsl_source):
+        with tempfile.NamedTemporaryFile(suffix=".comp", delete=False) as f:
+            f.write(glsl_source.encode())
+            tmp_in = f.name
+        tmp_out = tmp_in + ".spv"
+        try:
+            subprocess.run(
+                ["glslangValidator", "-V", tmp_in, "-o", tmp_out],
+                check=True,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            with open(tmp_out, "rb") as f:
+                return f.read()
+        finally:
+            os.unlink(tmp_in)
+            if os.path.exists(tmp_out):
+                os.unlink(tmp_out)
+
+    def _find_memory_type(self, type_filter, properties):
+        mem_props = vk.vkGetPhysicalDeviceMemoryProperties(self.phys_device)
+        for i in range(mem_props.memoryTypeCount):
+            if (type_filter & (1 << i)) and (mem_props.memoryTypes[i].propertyFlags & properties) == properties:
+                return i
+        return None
+
+    def _create_buffer(self, size, usage, mem_properties):
+        buf_info = vk.VkBufferCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            size=size, usage=usage, sharingMode=vk.VK_SHARING_MODE_EXCLUSIVE,
+        )
+        buf = vk.vkCreateBuffer(self.device, buf_info, None)
+        mem_reqs = vk.vkGetBufferMemoryRequirements(self.device, buf)
+        mem_type = self._find_memory_type(mem_reqs.memoryTypeBits, mem_properties)
+        if mem_type is None:
+            raise RuntimeError("Uygun bellek türü bulunamadı")
+        alloc = vk.VkMemoryAllocateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            allocationSize=mem_reqs.size, memoryTypeIndex=mem_type,
+        )
+        mem = vk.vkAllocateMemory(self.device, alloc, None)
+        vk.vkBindBufferMemory(self.device, buf, mem, 0)
+        return buf, mem
+
+    def _ensure_buffers(self, num_circles, output_floats):
+        if self.circles_buf is None or num_circles > self.max_circles:
+            if self.circles_buf:
+                vk.vkDestroyBuffer(self.device, self.circles_buf, None)
+                vk.vkFreeMemory(self.device, self.circles_mem, None)
+            self.max_circles = max(num_circles, 1024)
+            self.circles_buf, self.circles_mem = self._create_buffer(
+                self.max_circles * 6 * 4,
+                vk.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                vk.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vk.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            )
+        if self.output_buf is None or output_floats > self.max_output_floats:
+            if self.output_buf:
+                vk.vkDestroyBuffer(self.device, self.output_buf, None)
+                vk.vkFreeMemory(self.device, self.output_mem, None)
+            self.max_output_floats = output_floats
+            self.output_buf, self.output_mem = self._create_buffer(
+                output_floats * 4,
+                vk.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                vk.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vk.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            )
+
+        # Descriptor set'i güncelle
+        circle_desc = vk.VkDescriptorBufferInfo(buffer=self.circles_buf, offset=0, range=num_circles*6*4)
+        out_desc = vk.VkDescriptorBufferInfo(buffer=self.output_buf, offset=0, range=output_floats*4)
+        writes = [
+            vk.VkWriteDescriptorSet(
+                sType=vk.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                dstSet=self.desc_set, dstBinding=0, descriptorCount=1,
+                descriptorType=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                pBufferInfo=circle_desc,
+            ),
+            vk.VkWriteDescriptorSet(
+                sType=vk.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                dstSet=self.desc_set, dstBinding=1, descriptorCount=1,
+                descriptorType=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                pBufferInfo=out_desc,
+            ),
+        ]
+        vk.vkUpdateDescriptorSets(self.device, 2, writes, 0, None)
+
+    def generate_circles_with_colors(self, base_radius, scale_factor,
+                                     initial_children, recursive_children,
+                                     max_level, min_size_factor, main_color):
+        circles = []
+        min_r = base_radius * min_size_factor
+        def add_circle(cx, cy, r, color):
+            circles.append((cx, cy, r, color[0], color[1], color[2]))
+        add_circle(0.0, 0.0, base_radius, main_color)
+
+        def recurse(cx, cy, radius, level):
+            if level > max_level:
+                return
+            child_radius = radius * scale_factor
+            if child_radius < min_r:
+                return
+            distance = radius - child_radius
+            n = initial_children if level == 1 else recursive_children
+            for i in range(n):
+                angle = 2 * np.pi * i / n
+                ix = cx + distance * np.cos(angle)
+                iy = cy + distance * np.sin(angle)
+                child_color = random_soft_color()
+                add_circle(ix, iy, child_radius, child_color)
+                recurse(ix, iy, child_radius, level + 1)
+
+        if max_level >= 1:
+            recurse(0.0, 0.0, base_radius, 1)
+        return circles
+
+    def render_vulkan(self, circles, width, height, limit):
+        num_circles = len(circles)
+        output_floats = width * height * 3
+        self._ensure_buffers(num_circles, output_floats)
+
+        # Daire verisini yaz
+        circles_arr = np.array(circles, dtype=np.float32).flatten()
+        mapped = vk.vkMapMemory(self.device, self.circles_mem, 0, circles_arr.nbytes, 0)
+        ffi.memmove(mapped, circles_arr.tobytes(), circles_arr.nbytes)
+        vk.vkUnmapMemory(self.device, self.circles_mem)
+
+        # Komut tamponu
+        alloc_info = vk.VkCommandBufferAllocateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            commandPool=self.cmd_pool, level=vk.VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            commandBufferCount=1,
+        )
+        cmd = vk.vkAllocateCommandBuffers(self.device, alloc_info)[0]
+
+        begin_info = vk.VkCommandBufferBeginInfo(sType=vk.VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
+        vk.vkBeginCommandBuffer(cmd, begin_info)
+
+        vk.vkCmdBindPipeline(cmd, vk.VK_PIPELINE_BIND_POINT_COMPUTE, self.pipeline)
+        vk.vkCmdBindDescriptorSets(cmd, vk.VK_PIPELINE_BIND_POINT_COMPUTE, self.pipeline_layout,
+                                   0, 1, [self.desc_set], 0, None)
+
+        # Push constants – 4 int
+        push_data = np.array([width, height, num_circles, int(limit)], dtype=np.int32)
+        push_ptr = ffi.new("int[]", push_data.tolist())
+        vk.vkCmdPushConstants(cmd, self.pipeline_layout, vk.VK_SHADER_STAGE_COMPUTE_BIT,
+                              0, push_data.nbytes, push_ptr)
+
+        vk.vkCmdDispatch(cmd, (width + 15) // 16, (height + 15) // 16, 1)
+        vk.vkEndCommandBuffer(cmd)
+
+        submit = vk.VkSubmitInfo(sType=vk.VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                                 commandBufferCount=1, pCommandBuffers=[cmd])
+        vk.vkQueueSubmit(self.queue, 1, submit, vk.VK_NULL_HANDLE)
+        vk.vkQueueWaitIdle(self.queue)
+
+        vk.vkFreeCommandBuffers(self.device, self.cmd_pool, 1, [cmd])
+
+        # Çıktıyı oku ve kopyala
+        mapped = vk.vkMapMemory(self.device, self.output_mem, 0, output_floats * 4, 0)
+        raw = bytes(mapped[:output_floats * 4])
+        img = np.frombuffer(raw, dtype=np.float32).reshape((height, width, 3)).copy()
+        vk.vkUnmapMemory(self.device, self.output_mem)
+        return img
+
+    # ---------- test (tamamen kırmızı) ----------
+    def render_test_red(self, width=512, height=512):
+        """Bütün pikselleri kırmızı yaparak Vulkan boru hattının çalıştığını test eder."""
+        output_floats = width * height * 3
+        self._ensure_buffers(1, output_floats)  # en az 1 daire için buffer ayır
+
+        alloc_info = vk.VkCommandBufferAllocateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            commandPool=self.cmd_pool, level=vk.VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            commandBufferCount=1,
+        )
+        cmd = vk.vkAllocateCommandBuffers(self.device, alloc_info)[0]
+
+        begin_info = vk.VkCommandBufferBeginInfo(sType=vk.VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
+        vk.vkBeginCommandBuffer(cmd, begin_info)
+
+        vk.vkCmdBindPipeline(cmd, vk.VK_PIPELINE_BIND_POINT_COMPUTE, self.pipeline)
+        vk.vkCmdBindDescriptorSets(cmd, vk.VK_PIPELINE_BIND_POINT_COMPUTE, self.pipeline_layout,
+                                   0, 1, [self.desc_set], 0, None)
+
+        push_data = np.array([width, height, 0, 1], dtype=np.int32)  # num_circles=0, limit=1
+        push_ptr = ffi.new("int[]", push_data.tolist())
+        vk.vkCmdPushConstants(cmd, self.pipeline_layout, vk.VK_SHADER_STAGE_COMPUTE_BIT,
+                              0, push_data.nbytes, push_ptr)
+
+        vk.vkCmdDispatch(cmd, (width + 15) // 16, (height + 15) // 16, 1)
+        vk.vkEndCommandBuffer(cmd)
+
+        submit = vk.VkSubmitInfo(sType=vk.VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                                 commandBufferCount=1, pCommandBuffers=[cmd])
+        vk.vkQueueSubmit(self.queue, 1, submit, vk.VK_NULL_HANDLE)
+        vk.vkQueueWaitIdle(self.queue)
+
+        vk.vkFreeCommandBuffers(self.device, self.cmd_pool, 1, [cmd])
+
+        mapped = vk.vkMapMemory(self.device, self.output_mem, 0, output_floats * 4, 0)
+        raw = bytes(mapped[:output_floats * 4])
+        img = np.frombuffer(raw, dtype=np.float32).reshape((height, width, 3)).copy()
+        vk.vkUnmapMemory(self.device, self.output_mem)
+        return img
+
+    def kececifractals_circle_vulkan(self,
+                                     initial_children=5, recursive_children=5,
+                                     text="Keçeci Fractals", font_size=14,
+                                     font_color="black", font_style="bold",
+                                     font_family="Arial", max_level=4,
+                                     min_size_factor=0.001, scale_factor=0.5,
+                                     base_radius=12.0, background_color=None,
+                                     initial_circle_color=None,
+                                     output_mode="show",
+                                     filename="kececi_fractal_circle_vulkan",
+                                     dpi=300, width=1024, height=1024,
+                                     view_limit=None):
+        if not isinstance(max_level, int) or max_level < 0:
+            print("Error: max_level must be a non-negative integer.", file=sys.stderr)
+            return
+        if not (0 < scale_factor < 1):
+            print("Error: scale_factor must be between 0 and 1.", file=sys.stderr)
+            return
+
+        from matplotlib.colors import to_rgb
+        if initial_circle_color:
+            main_color = to_rgb(initial_circle_color) if isinstance(initial_circle_color, str) else initial_circle_color
+        else:
+            main_color = random_soft_color()
+
+        circles = self.generate_circles_with_colors(
+            base_radius, scale_factor, initial_children, recursive_children,
+            max_level, min_size_factor, main_color,
+        )
+
+        if view_limit is not None:
+            limit = view_limit
+        else:
+            limit = base_radius + 1.0
+            if text:
+                text_radius = base_radius + 0.8
+                limit = max(limit, text_radius + font_size * 0.1)
+            if circles:
+                arr = np.array(circles, dtype=np.float32)
+                max_ext = arr[:, 0:2].max() + arr[:, 2].max()
+                limit = max(limit, max_ext * 1.05)
+
+        img = self.render_vulkan(circles, width, height, limit)
+
+        if background_color:
+            bg = to_rgb(background_color) if isinstance(background_color, str) else background_color
+            mask = (img[:, :, 0] == 0) & (img[:, :, 1] == 0) & (img[:, :, 2] == 0)
+            img[mask] = bg
+
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.imshow(img, extent=[-limit, limit, -limit, limit], origin='lower')
+        ax.set_xlim(-limit, limit); ax.set_ylim(-limit, limit)
+        ax.set_aspect('equal'); ax.axis('off')
+
+        if text:
+            text_radius = base_radius + 0.8
+            fc = to_rgb(font_color) if isinstance(font_color, str) else (0, 0, 0)
+            for i, ch in enumerate(text):
+                angle = (360 / len(text) * i) - 90
+                rad = np.deg2rad(angle)
+                x = text_radius * np.cos(rad)
+                y = text_radius * np.sin(rad)
+                ax.text(x, y, ch, fontsize=font_size, ha='center', va='center',
+                        color=fc, fontweight=font_style, fontfamily=font_family,
+                        rotation=angle + 90)
+
+        title = f"Keçeci Fractals Vulkan ({text})" if text else "Keçeci Circle Fractal Vulkan"
+        plt.title(title, fontsize=16)
+
+        if output_mode == "show":
+            plt.show()
+        elif output_mode in ["png", "jpg", "jpeg", "svg"]:
+            fname = f"{filename}.{output_mode}"
+            plt.savefig(fname, dpi=dpi, bbox_inches='tight')
+            print(f"Fractal saved to: {fname}")
+            plt.close()
+        else:
+            print(f"Invalid output_mode: {output_mode}")
+            plt.close()
+
+"""
+vkf = KececiFractalVulkan()
+red = vkf.render_test_red(512, 512)
+plt.imshow(red)
+plt.show()
+"""
+"""
+vkf = KececiFractalVulkan()
+vkf.kececifractals_circle_vulkan(
+    text="Keçeci Fraktals with Vulkan",
+    max_level=2,
+    background_color="#9a9a1a",
+    output_mode="show",
+    width=800, height=800,
+    base_radius=12.0,
+    view_limit=14.0
+)
+"""
+
+# -------------------- Otomatik Seçim Sınıfı --------------------
+class KececiFractalAuto:
+    def __init__(self, prefer=None):
+        self.backend = None
+        self.backend_name = None
+
+        candidates = [prefer.lower()] if prefer else ["vulkan", "opencl", "opengl", "cpu"]
+
+        for candidate in candidates:
+            if candidate == "vulkan" and KececiFractalVulkan is not None:
+                try:
+                    self.backend = KececiFractalVulkan()
+                    # küçük test
+                    img = self.backend.render_test_red(64,64) if hasattr(self.backend, 'render_test_red') else None
+                    if img is not None and img.shape == (64,64,3):
+                        self.backend_name = "Vulkan"
+                        break
+                except: pass
+            elif candidate == "opencl" and KececiFractalOpenCL is not None:
+                try:
+                    self.backend = KececiFractalOpenCL()
+                    circles = self.backend.generate_circles_with_colors(1.0,0.5,3,3,0,0.001,(1,0,0))
+                    img = self.backend.render_gpu(circles, 64,64, 2.0)
+                    if img is not None and img.shape == (64,64,3):
+                        self.backend_name = "OpenCL"
+                        break
+                except: pass
+            elif candidate == "opengl" and KececiFractalOpenGL is not None:
+                try:
+                    self.backend = KececiFractalOpenGL()
+                    circles = self.backend.generate_circles_with_colors(1.0,0.5,3,3,0,0.001,(1,0,0))
+                    img = self.backend.render_opengl(circles, 64,64, 2.0)
+                    if img is not None and img.shape == (64,64,3):
+                        self.backend_name = "OpenGL (EGL)"
+                        break
+                except: pass
+            elif candidate == "cpu":
+                if kececifractals_circle is not None:
+                    self.backend = None
+                    self.backend_name = "CPU (kececifractals)"
+                    break
+
+        if self.backend_name is None:
+            raise RuntimeError("Hiçbir uygun arka uç bulunamadı.")
+
+    def show(self, **kwargs):
+        if self.backend_name.startswith("CPU"):
+            kececifractals_circle(**kwargs)
+        elif self.backend_name == "Vulkan":
+            self.backend.kececifractals_circle_vulkan(**kwargs)
+        elif self.backend_name == "OpenCL":
+            self.backend.kececifractals_circle_gpu(**kwargs)
+        elif self.backend_name.startswith("OpenGL"):
+            self.backend.kececifractals_circle_opengl(**kwargs)
+        else:
+            raise RuntimeError("Bilinmeyen arka uç")
+
+"""
+kf = KececiFractalAuto()   # otomatik en iyiyi seçer
+
+kf.show(
+    initial_children=5,
+    recursive_children=2,
+    text="Keçeci Fractals with GPU",
+    max_level=5,
+    background_color="#8a8a1a",
+    output_mode="show",
+    width=800, height=800,
+    base_radius=12.0,
+    view_limit=14.0
+)
+"""
 # ==============================================================================
 # PART 5: MODULE TESTS
 # ==============================================================================

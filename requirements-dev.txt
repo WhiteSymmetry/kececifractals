@@ -1,5 +1,7 @@
 numpy
 matplotlib
 networkx
-pyopencl
 kececilayout
+PyOpenGL 
+pyopencl 
+vulkan

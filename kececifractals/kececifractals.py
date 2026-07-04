@@ -3647,6 +3647,10 @@ class KececiFractalAuto:
             raise RuntimeError("Hiçbir uygun arka uç bulunamadı.")
 
     def show(self, **kwargs):
+        """
+        Kullanıcıdan gelen tüm parametreleri seçilen arka uca aktarır.
+        CPU için özel olarak kececifractals_circle fonksiyonunu çağırır.
+        """
         if self.backend_name.startswith("CPU"):
             kececifractals_circle(**kwargs)
         elif self.backend_name == "Vulkan":
@@ -3657,6 +3661,11 @@ class KececiFractalAuto:
             self.backend.kececifractals_circle_opengl(**kwargs)
         else:
             raise RuntimeError("Bilinmeyen arka uç")
+            method(**kwargs)
+
+    @property
+    def active_backend(self):
+        return self.backend_name
 
 """
 kf = KececiFractalAuto()   # otomatik en iyiyi seçer

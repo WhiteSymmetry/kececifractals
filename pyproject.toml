@@ -4,7 +4,7 @@ version = "0.2.6"
 
 # Diğer proje bilgileri (isteğe bağlı ama tavsiye edilir)
 authors = [
-    { name="Mehmet Keçeci", email="mkececi@yaani.com" },
+    { name="Mehmet Keçeci", email="enfo@tuta.io" },
 ]
 description = "Keçeci Fractals: Keçeci-style circle fractal."
 readme = "README.md"

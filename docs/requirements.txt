@@ -4,5 +4,5 @@ sphinx_rtd_theme
 sphinx_copybutton
 sphinx-autobuild
 myst_parser
-Pygments>=2.20.0
+Pygments>=2.21.0
 requests>=2.34.2

@@ -1,6 +1,6 @@
 [project]
 name = "kececifractals"
-version = "0.2.6"
+version = "0.2.7"
 
 # Diğer proje bilgileri (isteğe bağlı ama tavsiye edilir)
 authors = [
@@ -47,7 +47,7 @@ test = [
 dev = [{include-group = "test"}]
 test = ["pytest"]
 build = [
-    "setuptools (>=82.0.1)",
+    "setuptools (>=84.0.0)",
     "cython (>=3.2.4)"
 ]
 

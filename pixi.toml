@@ -4,11 +4,11 @@ authors = ["Mehmet Keçeci <enfo@tuta.io>"]
 channels = ["pypi", "https://prefix.dev/conda-forge", "https://conda.modular.com/max-nightly", "conda-forge", "https://repo.prefix.dev/modular-community"]
 platforms = ["linux-64"]
 name = "kececifractals"
-version = "0.2.6"
+version = "0.2.7"
 
 [package]
 name = "kececifractals"
-version = "0.2.6"
+version = "0.2.7"
 license = "AGPL-3.0-or-later"
 
 [dependencies]
@@ -23,6 +23,7 @@ rattler-build = ">=0.55.0"
 networkx = ">=3.6.1"
 matplotlib = ">=3.11.0"
 numpy = ">=2.4.6"
+pytest = "*"
 
 [tasks]
 build = "python -m build"
@@ -33,7 +34,6 @@ serve = { cmd = "python -m http.server", cwd = "docs" }
 install-kececifractals = "pip install git+https://github.com/WhiteSymmetry/kececifractals"
 install = "pip install -e ."
 test = { depends-on = ["install"], cmd = "pytest" }
-install-deps = "pip install kececifractals"
 
 [package.build.backend]
 name = "pixi-build-python"

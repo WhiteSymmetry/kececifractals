@@ -13,9 +13,9 @@ import warnings
 from typing import List, Optional, Tuple, Union, Callable
 
 # Paket sürüm numarası
-__version__ = "0.2.6"
+__version__ = "0.2.7"
 __author__ = "Mehmet Keçeci"
-__email__ = "mkececi@yaani.com"
+__email__ = "enfo@tuta.io"
 __license__ = "AGPL3.0-or-later"
 
 # Ana fonksiyonları dışa aktar

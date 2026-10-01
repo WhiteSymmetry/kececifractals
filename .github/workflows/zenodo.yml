@@ -4,9 +4,9 @@ on:
   release:
     types: [published]
 
-runs:
-  using: 'node24'
-  main: 'main.js'
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   publish-to-zenodo:
